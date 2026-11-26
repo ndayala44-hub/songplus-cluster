@@ -69,18 +69,15 @@ fun SliderRow(label: String, value: Float, range: ClosedFloatingPointRange<Float
     }
 }
 
-val SwatchColors = listOf(
-    0xFF2FE3A0.toInt(), 0xFF4FA3FF.toInt(), 0xFFFF5A3C.toInt(), 0xFFFFB020.toInt(), 0xFFB26BFF.toInt(),
-    0xFF00D1D1.toInt(), 0xFFFF4D9D.toInt(), 0xFFA6E22E.toInt(), 0xFFFFFFFF.toInt(), 0xFFC0C6CC.toInt()
-)
+val SwatchColors = com.songplus.cluster.ui.theme.Brand.CALM_CHOICES
 
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-fun ColorSwatches(label: String, current: Int, onPick: (Int) -> Unit) {
+fun ColorSwatches(label: String, current: Int, choices: List<Int> = SwatchColors, onPick: (Int) -> Unit) {
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(label, style = MaterialTheme.typography.bodyLarge)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 6.dp)) {
-            for (c in SwatchColors) {
+            for (c in choices) {
                 val sel = c == current
                 Box(
                     Modifier.size(34.dp).background(Color(c), CircleShape)

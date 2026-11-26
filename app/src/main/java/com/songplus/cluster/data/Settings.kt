@@ -22,10 +22,17 @@ enum class BlinkRate(val periodMs: Int) { NORMAL(600), SLOW(900), FAST(450) }
 
 /** Default accent colours per drive mode (dark theme). Light theme uses a darkened variant. */
 object ModeColors {
-    const val ECO = 0xFF2FE3A0.toInt()
-    const val NORMAL = 0xFF4FA3FF.toInt()
-    const val SPORT = 0xFFFF5A3C.toInt()
+    /** Brand palette: Eco mint, Normal cyan, Sport red. Red is reserved for Sport. */
+    const val ECO = 0xFF90FC9C.toInt()
+    const val NORMAL = 0xFF00C6FC.toInt()
+    const val SPORT = 0xFFE5334B.toInt()
+
+    /** Defaults of earlier versions; saved settings still holding one of these move to the new palette. */
+    val OLD_DEFAULTS = setOf(0xFF2FE3A0.toInt(), 0xFF4FA3FF.toInt(), 0xFFFF5A3C.toInt())
 }
+
+/** Where the reverse-camera picture comes from. */
+enum class CamSource { AUTO, CAMERA2_ID, MJPEG_URL }
 
 data class AppSettings(
     val language: Lang = Lang.SYSTEM,
@@ -54,6 +61,12 @@ data class AppSettings(
     val refreshHz: Int = 10,
     val simAutoDrive: Boolean = true,
     val debugOverlay: Boolean = false,
+    val reverseCamera: Boolean = true,
+    val camSource: CamSource = CamSource.AUTO,
+    val camId: String = "",
+    val camUrl: String = "",
+    val camMirror: Boolean = false,
+    val camGuides: Boolean = true,
     val speedMode: SpeedDisplayMode = SpeedDisplayMode.REAL,
     val speedPercent: Float = 4.5f,
     val speedPlusKmh: Float = 5f,
@@ -75,6 +88,8 @@ data class AppSettings(
         put("animation", animation.name); put("brightness", brightness.toDouble())
         put("activeLayoutId", activeLayoutId); put("batteryDisplay", batteryDisplay.name)
         put("blinkRate", blinkRate.name); put("showHazardBanner", showHazardBanner)
+        put("reverseCamera", reverseCamera); put("camSource", camSource.name); put("camId", camId); put("camUrl", camUrl)
+        put("camMirror", camMirror); put("camGuides", camGuides)
         put("dataMode", dataMode.name); put("refreshHz", refreshHz); put("simAutoDrive", simAutoDrive)
         put("debugOverlay", debugOverlay)
         put("speedMode", speedMode.name); put("speedPercent", speedPercent.toDouble()); put("speedPlusKmh", speedPlusKmh.toDouble())
@@ -100,9 +115,15 @@ data class AppSettings(
                 themeMode = o.enumOr("themeMode", d.themeMode),
                 autoDarkFromHour = o.optInt("autoDarkFromHour", d.autoDarkFromHour).coerceIn(0, 23),
                 autoDarkToHour = o.optInt("autoDarkToHour", d.autoDarkToHour).coerceIn(0, 23),
-                accentEco = o.optInt("accentEco", d.accentEco),
-                accentNormal = o.optInt("accentNormal", d.accentNormal),
-                accentSport = o.optInt("accentSport", d.accentSport),
+                accentEco = o.optInt("accentEco", d.accentEco).let { if (it in ModeColors.OLD_DEFAULTS) d.accentEco else it },
+                accentNormal = o.optInt("accentNormal", d.accentNormal).let { if (it in ModeColors.OLD_DEFAULTS) d.accentNormal else it },
+                accentSport = o.optInt("accentSport", d.accentSport).let { if (it in ModeColors.OLD_DEFAULTS) d.accentSport else it },
+                reverseCamera = o.optBoolean("reverseCamera", d.reverseCamera),
+                camSource = o.enumOr("camSource", d.camSource),
+                camId = o.optString("camId", d.camId),
+                camUrl = o.optString("camUrl", d.camUrl),
+                camMirror = o.optBoolean("camMirror", d.camMirror),
+                camGuides = o.optBoolean("camGuides", d.camGuides),
                 animation = o.enumOr("animation", d.animation),
                 brightness = o.optDouble("brightness", d.brightness.toDouble()).toFloat().coerceIn(0f, 1f),
                 activeLayoutId = o.optString("activeLayoutId", d.activeLayoutId),

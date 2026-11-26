@@ -4,6 +4,7 @@ import android.app.Application
 import com.songplus.cluster.data.LayoutRepository
 import com.songplus.cluster.data.SettingsStore
 import com.songplus.cluster.data.TripStore
+import com.songplus.cluster.media.MediaRepository
 import com.songplus.cluster.vehicle.VehicleRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +17,7 @@ class AppContainer(app: Application) {
     val layouts = LayoutRepository(app)
     val trips = TripStore(app)
     val vehicle = VehicleRepository(app, settings, scope, trips)
+    val media = MediaRepository(app)
 }
 
 class ClusterApp : Application() {

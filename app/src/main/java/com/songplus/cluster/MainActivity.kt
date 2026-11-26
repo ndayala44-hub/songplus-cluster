@@ -69,6 +69,23 @@ class MainActivity : AppCompatActivity() {
         val openScreen = if (debuggable) intent.getStringExtra("screen") else null
         val openCat = if (debuggable) intent.getIntExtra("cat", 0) else 0
         if (debuggable && intent.getBooleanExtra("seed_demo", false)) vm.seedDemoTrips()
+        if (debuggable) {
+            // test hooks: choose drive mode / gear in the simulator (this switches auto-drive off)
+            val dm = intent.getStringExtra("mode")
+            val gr = intent.getStringExtra("gear")
+            if (dm != null || gr != null) {
+                vm.updateSettings { it.copy(simAutoDrive = false) }
+                vm.updateSim { i ->
+                    i.copy(
+                        mode = when (dm) { "eco" -> com.songplus.cluster.data.DriveMode.ECO; "sport" -> com.songplus.cluster.data.DriveMode.SPORT; "normal" -> com.songplus.cluster.data.DriveMode.NORMAL; else -> i.mode },
+                        gear = when (gr) { "R" -> com.songplus.cluster.data.Gear.R; "D" -> com.songplus.cluster.data.Gear.D; "P" -> com.songplus.cluster.data.Gear.P; else -> i.gear },
+                        targetSpeedKmh = intent.getFloatExtra("speed", 0f)
+                    )
+                }
+            }
+            if (intent.getBooleanExtra("test_media", false)) com.songplus.cluster.debug.TestMediaSession.start(this)
+            intent.getStringExtra("cam_url")?.let { u -> vm.updateSettings { it.copy(camSource = com.songplus.cluster.data.CamSource.MJPEG_URL, camUrl = u) } }
+        }
         if (debuggable) when (intent.getStringExtra("theme")) {
             "light" -> vm.updateSettings { it.copy(themeMode = com.songplus.cluster.data.ThemeMode.LIGHT) }
             "dark" -> vm.updateSettings { it.copy(themeMode = com.songplus.cluster.data.ThemeMode.DARK) }
@@ -92,6 +109,7 @@ class MainActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         vm.startVehicle()
+        vm.refreshMedia()
     }
 
     override fun onStop() {
@@ -202,6 +220,8 @@ class MainActivity : AppCompatActivity() {
         val status by vm.status.collectAsState()
         val users by vm.userLayouts.collectAsState()
         val projection by vm.projection.collectAsState()
+        val media by vm.media.collectAsState()
+        val mediaAccess by vm.mediaAccess.collectAsState()
         val cfg = remember(settings.activeLayoutId, users) { vm.activeLayout() }
         val gestures = Modifier.fillMaxSize().pointerInput(Unit) {
             detectTapGestures(onTap = { onTap() }, onLongPress = { onLongPress() })
@@ -216,7 +236,7 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         } else {
-            ClusterCanvas(state, cfg, settings, status, dark, gestures, projection = projection)
+            ClusterCanvas(state, cfg, settings, status, dark, gestures, projection = projection, media = media, mediaAccess = mediaAccess, liveCamera = true)
         }
     }
 

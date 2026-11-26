@@ -25,6 +25,8 @@ import com.songplus.cluster.data.ClusterConfig
 import com.songplus.cluster.data.FontStyle
 import com.songplus.cluster.data.VehicleState
 import com.songplus.cluster.ui.theme.ClusterColors
+import com.songplus.cluster.media.MediaAccess
+import com.songplus.cluster.media.MediaInfo
 import com.songplus.cluster.vehicle.Projection
 
 /** Scales design units (1 unit = 1/720 of the canvas height) to dp / sp. */
@@ -43,7 +45,13 @@ class WCtx(
     val accent: Color,
     val scale: Scale,
     val blinkOn: Boolean,
-    val projection: Projection? = null
+    val projection: Projection? = null,
+    /** True while the gear is R and the reverse camera is enabled. */
+    val reverse: Boolean = false,
+    /** False in the designer preview, so the camera is never opened there. */
+    val liveCamera: Boolean = false,
+    val media: MediaInfo? = null,
+    val mediaAccess: MediaAccess = MediaAccess.NO_PERMISSION
 ) {
     fun text(size: Float, weight: FontWeight? = null, color: Color = colors.text): TextStyle {
         val fam = if (cfg.font == FontStyle.MONO) FontFamily.Monospace else FontFamily.SansSerif

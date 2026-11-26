@@ -38,6 +38,11 @@ class ClusterViewModel(app: Application) : AndroidViewModel(app) {
     val status: StateFlow<ConnectionStatus> = c.vehicle.status
     val simInputs: StateFlow<SimInputs> = c.vehicle.simInputs
 
+    val media = c.media.info
+    val mediaAccess = c.media.access
+    fun refreshMedia() = c.media.refresh()
+    fun hasMediaAccess() = c.media.hasAccess()
+
     val trips: StateFlow<List<TripRecord>> = c.trips.trips
     val tripActive: StateFlow<Boolean> = c.vehicle.tripActive
 

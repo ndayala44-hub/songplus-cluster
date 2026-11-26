@@ -89,6 +89,7 @@ jobs:
           arch: x86_64
           profile: pixel_tablet
           disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back virtualscene -camera-front emulated
           script: bash ci/screenshots.sh
 
       - uses: actions/upload-artifact@v4

@@ -59,7 +59,11 @@ data class VehicleState(
     val tyreFR: Sig<Tyre>,
     val tyreRL: Sig<Tyre>,
     val tyreRR: Sig<Tyre>,
-    val outsideTempC: Sig<Float>
+    val outsideTempC: Sig<Float>,
+    /** Steering wheel angle in degrees (negative = left). Unavailable unless a verified source exists. */
+    val steeringDeg: Sig<Float> = na(0f),
+    /** Rear parking-sensor distances in metres, left to right. Unavailable unless a verified source exists. */
+    val radarRear: Sig<List<Float>> = na(emptyList())
 ) {
     val anyDoorOpen: Boolean
         get() = doorFL.value || doorFR.value || doorRL.value || doorRR.value || trunk.value

@@ -37,6 +37,8 @@ import com.songplus.cluster.data.DistUnit
 import com.songplus.cluster.data.DriveMode
 import com.songplus.cluster.data.Gear
 import com.songplus.cluster.data.Units
+import com.songplus.cluster.ui.theme.Brand
+import com.songplus.cluster.ui.theme.modePalette
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -49,11 +51,9 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 
-private val MINT = Color(0xFF2FE3A0)
-private val CRIMSON = Color(0xFFFF2D55)
-private val ORANGE = Color(0xFFFF8A1F)
-private val AMBER = Color(0xFFFFB020)
-private val ICE = Color(0xFF7CC8FF)
+private val MINT = Brand.MINT
+private val AMBER = Brand.AMBER
+private val ICE = Color(0xFF7DE3FF)
 private val WHITE = Color(0xFFF4F6FB)
 private val INK = Color(0xFF161A2B)
 
@@ -143,12 +143,15 @@ internal fun AuroraWidget(c: WCtx) {
     )
     val dark = c.colors.dark
     val fg = if (dark) WHITE else INK
-    val mint = if (dark) MINT else Color(0xFF0E9F6E)
-    val rawMode = if (!s.mode.available) CRIMSON else when (s.mode.value) {
-        DriveMode.ECO -> MINT; DriveMode.NORMAL -> CRIMSON; DriveMode.SPORT -> ORANGE
-    }
-    val modeColor = if (dark) rawMode else mix(rawMode, Color.Black, 0.22f)
-    val acc by animateColorAsState(modeColor, if (lvl == AnimLevel.OFF) tween(0) else tween(650), label = "auroraAccent")
+    val mint = if (dark) MINT else Color(0xFF1E9E5A)
+    val modeNow = if (s.mode.available) s.mode.value else DriveMode.NORMAL
+    val mp = modePalette(modeNow, dark)
+    val tweenC = if (lvl == AnimLevel.OFF) tween<Color>(0) else tween<Color>(650)
+    val acc by animateColorAsState(mp.accent, tweenC, label = "auroraAccent")
+    val bgTop by animateColorAsState(mp.bgTop, tweenC, label = "auroraBgTop")
+    val bgBottom by animateColorAsState(mp.bgBottom, tweenC, label = "auroraBgBottom")
+    val alertCol = mp.alert
+    val brakeCol = mp.brake
 
     // ---- rolling power history for the little graph ----
     val hist = remember { mutableStateListOf<Float>() }
@@ -182,6 +185,7 @@ internal fun AuroraWidget(c: WCtx) {
     val blink = c.blinkOn
     val unitLabel = Units.speedLabel(speedUnit)
     val gearSel = if (s.gear.available) s.gear.value else null
+    val reverse = c.reverse
 
     Canvas(Modifier.fillMaxSize()) {
         // design space is 1920 x 720; on other aspect ratios it is scaled to fit and centred vertically
@@ -196,13 +200,15 @@ internal fun AuroraWidget(c: WCtx) {
         val pulse = 0.5f + 0.5f * sin(clock.floatValue * 5.2f)
         fun a(col: Color, k: Float = 1f) = col.copy(alpha = (col.alpha * k * fa).coerceIn(0f, 1f))
 
-        drawBackground(u, cx, oy, dark, acc, power, ambient, brake)
+        drawBackground(u, cx, oy, dark, bgTop, bgBottom, acc, power, ambient, brake, brakeCol)
 
         // ================= centre: road / charging scene =================
         val vp = Offset(X(0f), Y(ROAD_VP_Y))
         val bottomY = Y(ROAD_BOTTOM_Y)
-        if (!charging) {
-            drawRoad(u, cx, oy, dark, fg, acc, roadPhase.floatValue, speedFrac, leftOn && blink, rightOn && blink, lightsK, highK, brake, fa, clock.floatValue, s.outsideTempC.available && tempC <= 3f)
+        if (reverse) {
+            // the reverse camera panel takes over the centre; keep only the soft glow
+        } else if (!charging) {
+            drawRoad(u, cx, oy, dark, fg, acc, brakeCol, roadPhase.floatValue, speedFrac, leftOn && blink, rightOn && blink, lightsK, highK, brake, fa, clock.floatValue, s.outsideTempC.available && tempC <= 3f)
         } else {
             for (i in 0 until 3) {
                 val tk = ((clock.floatValue * 0.45f) + i / 3f) % 1f
@@ -222,8 +228,8 @@ internal fun AuroraWidget(c: WCtx) {
             val rOut = 208f * u
             val lowK = if (s.socPct.available) ((20f - s.socPct.value) / 10f).coerceIn(0f, 1f) else 0f
             val critical = s.socPct.available && s.socPct.value < 10f
-            var battCol = mix(acc, AMBER, lowK)
-            if (critical) battCol = mix(AMBER, Color(0xFFFF3B30), pulse)
+            var battCol = mix(acc, alertCol, lowK)
+            if (critical) battCol = mix(acc, alertCol, pulse)
             if (charging) battCol = mix(mint, fg, pulse * 0.25f)
 
             // reach ring
@@ -450,9 +456,9 @@ private fun DrawScope.drawBolt(x: Float, y: Float, s: Float, color: Color) {
     drawPath(p, color, style = Fill)
 }
 
-private fun DrawScope.drawBackground(u: Float, cx: Float, oy: Float, dark: Boolean, acc: Color, power: Float, ambient: Float, brake: Float) {
-    val top = if (dark) mix(Color(0xFF1E2038), Color(0xFF0E0F1D), ambient) else mix(Color(0xFFF1F3FA), Color(0xFFDDE1EE), ambient * 0.6f)
-    val bot = if (dark) mix(Color(0xFF12131F), Color(0xFF06060D), ambient) else mix(Color(0xFFE2E6F2), Color(0xFFC9CEE0), ambient * 0.6f)
+private fun DrawScope.drawBackground(u: Float, cx: Float, oy: Float, dark: Boolean, bgTop: Color, bgBottom: Color, acc: Color, power: Float, ambient: Float, brake: Float, brakeCol: Color) {
+    val top = mix(bgTop, Color.Black, ambient * (if (dark) 0.35f else 0.10f))
+    val bot = mix(bgBottom, Color.Black, ambient * (if (dark) 0.35f else 0.10f))
     drawRect(Brush.verticalGradient(listOf(top, bot)))
     // vignette
     drawRect(
@@ -469,7 +475,7 @@ private fun DrawScope.drawBackground(u: Float, cx: Float, oy: Float, dark: Boole
     )
     if (brake > 0.01f) {
         drawCircle(
-            Brush.radialGradient(listOf(Color(0xFFFF2A2A).copy(alpha = 0.40f * brake), Color.Transparent), Offset(cx, oy + 600f * u), 330f * u),
+            Brush.radialGradient(listOf(brakeCol.copy(alpha = 0.40f * brake), Color.Transparent), Offset(cx, oy + 600f * u), 330f * u),
             330f * u, Offset(cx, oy + 600f * u)
         )
     }
@@ -480,7 +486,7 @@ private fun DrawScope.drawBackground(u: Float, cx: Float, oy: Float, dark: Boole
 }
 
 private fun DrawScope.drawRoad(
-    u: Float, cx: Float, oy: Float, dark: Boolean, fg: Color, acc: Color, phase: Float, speedFrac: Float,
+    u: Float, cx: Float, oy: Float, dark: Boolean, fg: Color, acc: Color, brakeCol: Color, phase: Float, speedFrac: Float,
     leftSig: Boolean, rightSig: Boolean, lights: Float, high: Float, brake: Float, fade: Float, clock: Float, cold: Boolean
 ) {
     val vp = Offset(cx, oy + ROAD_VP_Y * u)
@@ -523,7 +529,7 @@ private fun DrawScope.drawRoad(
             val p0 = Offset(cx + lane * u * s0, vp.y + (by - vp.y) * s0)
             val p1 = Offset(cx + lane * u * s1, vp.y + (by - vp.y) * s1)
             val al = (s0 * 1.6f).coerceIn(0f, 0.85f) * fade
-            val col = mix(tint, Color(0xFFFF4040), brake * 0.7f)
+            val col = mix(tint, brakeCol, brake * 0.7f)
             drawLine(col.copy(alpha = al), p0, p1, (1.5f + 5f * s1) * u, StrokeCap.Round)
         }
     }

@@ -4,7 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /** Every widget the cluster can show. */
-enum class WidgetId { AURORA, SPEED, POWER, BATTERY, RANGE, GEAR, MODE, TELLTALES, CAR, TRIP, TYRES, CLOCK, WARNINGS, CONSUMPTION, PROJECTION }
+enum class WidgetId { AURORA, SPEED, POWER, BATTERY, RANGE, GEAR, MODE, TELLTALES, CAR, TRIP, TYRES, CLOCK, WARNINGS, CONSUMPTION, PROJECTION, MUSIC }
 
 enum class GaugeStyle { RING, BAR, DIGITAL, DIAL }
 enum class BgStyle { SOLID, GRADIENT, GRID }
@@ -215,12 +215,13 @@ object BuiltinLayouts {
         id = AURORA_ID, name = "Aurora – reactive scene", builtin = true,
         gauge = GaugeStyle.RING, glow = true, font = FontStyle.LIGHT, background = BgStyle.SOLID,
         darkPalette = 1, lightPalette = 1,
-        accentSource = AccentSource.FIXED, fixedAccent = 0xFFFF2D55.toInt(),
+        accentSource = AccentSource.MODE,
         widgets = mapOf(
             WidgetId.AURORA to w(true, 0f, 0f, 1f, 1f),
             WidgetId.CAR to w(true, 0.37f, 0.45f, 0.26f, 0.37f),
             WidgetId.TELLTALES to w(true, 0.33f, 0.115f, 0.34f, 0.07f),
-            WidgetId.WARNINGS to w(true, 0.32f, 0.835f, 0.36f, 0.065f)
+            WidgetId.WARNINGS to w(true, 0.32f, 0.835f, 0.36f, 0.065f),
+            WidgetId.MUSIC to w(true, 0.271f, 0.597f, 0.1406f, 0.125f)
         )
     ))
 

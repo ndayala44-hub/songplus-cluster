@@ -37,6 +37,11 @@ import com.songplus.cluster.data.VehicleState
 import com.songplus.cluster.data.WidgetId
 import com.songplus.cluster.ui.theme.Palettes
 import com.songplus.cluster.ui.theme.accentFor
+import com.songplus.cluster.media.MediaAccess
+import com.songplus.cluster.media.MediaInfo
+import com.songplus.cluster.data.DriveMode
+import com.songplus.cluster.data.Gear
+import com.songplus.cluster.ui.theme.modePalette
 import com.songplus.cluster.vehicle.Projection
 import kotlin.math.min
 
@@ -54,16 +59,28 @@ fun ClusterCanvas(
     modifier: Modifier = Modifier,
     showStatusBadge: Boolean = true,
     projection: Projection? = null,
+    media: MediaInfo? = null,
+    mediaAccess: MediaAccess = MediaAccess.NO_PERMISSION,
+    liveCamera: Boolean = false,
     overlay: @Composable BoxScope.(Dp, Dp, Scale) -> Unit = { _, _, _ -> }
 ) {
     val colors = Palettes.pick(dark, if (dark) cfg.darkPalette else cfg.lightPalette)
     val accent = accentFor(settings, cfg, state.mode.value, dark)
     val blink = rememberBlink(settings.blinkRate)
     val density = LocalDensity.current
-    BoxWithConstraints(modifier.background(brushFor(cfg, colors.bg0, colors.bg1))) {
+    val mode = if (state.mode.available) state.mode.value else DriveMode.NORMAL
+    val mp = modePalette(mode, dark)
+    // Backgrounds follow the drive mode (blend with the chosen palette); red only appears in Sport.
+    val bg0 = mixColor(colors.bg0, mp.bgBottom, 0.6f)
+    val bg1 = mixColor(colors.bg1, mp.bgTop, 0.6f)
+    val reverse = settings.reverseCamera && state.gear.available && state.gear.value == Gear.R
+    BoxWithConstraints(modifier.background(brushFor(cfg, bg0, bg1))) {
         val u = min(maxHeight.value / 720f, maxWidth.value / 1920f)
         val scale = Scale(u, density)
-        val ctx = WCtx(state, settings, cfg, colors.copy(accent = accent), accent, scale, blink, projection)
+        val ctx = WCtx(
+            state, settings, cfg, colors.copy(accent = accent, alert = mp.alert), accent, scale, blink, projection,
+            reverse = reverse, liveCamera = liveCamera, media = media, mediaAccess = mediaAccess
+        )
         if (cfg.background == BgStyle.GRID) {
             Canvas(Modifier.fillMaxSize()) {
                 val step = scale.px(60f)
@@ -77,7 +94,14 @@ fun ClusterCanvas(
             val sp = cfg.spec(id)
             if (!sp.visible) continue
             if (id == WidgetId.GEAR && !settings.showGear) continue
-            ClusterWidget(
+            if (id == WidgetId.CAR && reverse) {
+                // the camera tile is square and a little larger than the car picture, centred on the car's spot
+                val side = min(maxHeight.value * 0.62f, maxWidth.value * 0.28f).dp
+                val cxp = maxWidth * (sp.x + sp.w / 2f)
+                val cyp = maxHeight * (sp.y + sp.h / 2f)
+                val topP = (cyp - side / 2f).coerceIn(maxHeight * 0.14f, maxHeight * 0.82f - side)
+                ClusterWidget(id, ctx, Modifier.offset(cxp - side / 2f, topP).size(side, side))
+            } else ClusterWidget(
                 id, ctx,
                 Modifier.offset(maxWidth * sp.x, maxHeight * sp.y).size(maxWidth * sp.w, maxHeight * sp.h)
             )
@@ -97,6 +121,9 @@ fun ClusterCanvas(
         overlay(maxWidth, maxHeight, scale)
     }
 }
+
+private fun mixColor(a: androidx.compose.ui.graphics.Color, b: androidx.compose.ui.graphics.Color, t: Float) =
+    androidx.compose.ui.graphics.Color(a.red + (b.red - a.red) * t, a.green + (b.green - a.green) * t, a.blue + (b.blue - a.blue) * t, 1f)
 
 private fun c4(s: Scale) = s.dp(5f)
 

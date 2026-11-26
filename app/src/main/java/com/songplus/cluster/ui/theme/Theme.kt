@@ -35,12 +35,12 @@ data class ClusterColors(
 object Palettes {
     private fun dark(name: String, bg0: Long, bg1: Long, panel: Long) = ClusterColors(
         name, true, Color(bg0), Color(bg1), Color(panel), Color(0xFFF2F6FA), Color(0xFF8C98A6), Color(0x33FFFFFF),
-        Color(0xFF2FE3A0), Color(0xFFFFB020), Color(0xFFFF4D4D), Color(0xFF4FA3FF), Color(0xFF4FA3FF)
+        Color(0xFF90FC9C), Color(0xFFFFB020), Color(0xFFFFB020), Color(0xFF00C6FC), Color(0xFF00C6FC)
     )
 
     private fun light(name: String, bg0: Long, bg1: Long, panel: Long) = ClusterColors(
         name, false, Color(bg0), Color(bg1), Color(panel), Color(0xFF14202B), Color(0xFF5B6876), Color(0x33000000),
-        Color(0xFF0E9F6E), Color(0xFFB86E00), Color(0xFFD62C2C), Color(0xFF1E6FD9), Color(0xFF1E6FD9)
+        Color(0xFF1E9E5A), Color(0xFFB86E00), Color(0xFFB86E00), Color(0xFF1F6FB0), Color(0xFF1F6FB0)
     )
 
     val darkSet = listOf(
@@ -88,10 +88,10 @@ val LocalClusterColors = staticCompositionLocalOf { Palettes.darkSet[0] }
 fun AppTheme(dark: Boolean, content: @Composable () -> Unit) {
     val cc = Palettes.pick(dark, 0)
     val scheme = if (dark) darkColorScheme(
-        primary = Color(0xFF4FA3FF), background = cc.bg0, surface = cc.panel, onSurface = cc.text, onBackground = cc.text,
+        primary = Color(0xFF00C6FC), background = cc.bg0, surface = cc.panel, onSurface = cc.text, onBackground = cc.text,
         surfaceVariant = Color(0xFF1B2733), onSurfaceVariant = cc.textDim
     ) else lightColorScheme(
-        primary = Color(0xFF1E6FD9), background = cc.bg0, surface = cc.panel, onSurface = cc.text, onBackground = cc.text,
+        primary = Color(0xFF1F6FB0), background = cc.bg0, surface = cc.panel, onSurface = cc.text, onBackground = cc.text,
         surfaceVariant = Color(0xFFDDE5EC), onSurfaceVariant = cc.textDim
     )
     CompositionLocalProvider(LocalClusterColors provides cc) {

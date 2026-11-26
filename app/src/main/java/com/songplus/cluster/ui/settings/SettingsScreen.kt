@@ -134,7 +134,7 @@ private fun Appearance(vm: ClusterViewModel) {
     SectionTitle(stringResource(R.string.mode_colours))
     ColorSwatches(stringResource(R.string.mode_eco), s.accentEco) { c -> vm.updateSettings { it.copy(accentEco = c) } }
     ColorSwatches(stringResource(R.string.mode_normal), s.accentNormal) { c -> vm.updateSettings { it.copy(accentNormal = c) } }
-    ColorSwatches(stringResource(R.string.mode_sport), s.accentSport) { c -> vm.updateSettings { it.copy(accentSport = c) } }
+    ColorSwatches(stringResource(R.string.mode_sport), s.accentSport, com.songplus.cluster.ui.theme.Brand.SPORT_CHOICES) { c -> vm.updateSettings { it.copy(accentSport = c) } }
     SectionTitle(stringResource(R.string.motion))
     ChoiceRow(stringResource(R.string.animation), AnimLevel.values().toList(), s.animation,
         { stringResource(when (it) { AnimLevel.FULL -> R.string.anim_full; AnimLevel.REDUCED -> R.string.anim_reduced; AnimLevel.OFF -> R.string.anim_off }) },
@@ -201,9 +201,9 @@ private fun Vehicle(vm: ClusterViewModel) {
 
     SectionTitle(stringResource(R.string.connection))
     val (label, color) = when (st.effective) {
-        EffectiveSource.REAL -> stringResource(R.string.badge_real) to Color(0xFF2FE3A0)
+        EffectiveSource.REAL -> stringResource(R.string.badge_real) to Color(0xFF90FC9C)
         EffectiveSource.SIMULATION -> stringResource(R.string.badge_sim) to Color(0xFFFFB020)
-        EffectiveSource.NONE -> stringResource(R.string.badge_none) to Color(0xFFFF4D4D)
+        EffectiveSource.NONE -> stringResource(R.string.badge_none) to Color(0xFFFFB020)
     }
     KeyValue(stringResource(R.string.conn_state), label, color)
     Text(st.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -224,6 +224,8 @@ private fun Vehicle(vm: ClusterViewModel) {
     ) { v -> vm.updateSettings { it.copy(dataMode = v) } }
     SliderRow(stringResource(R.string.refresh_rate), s.refreshHz.toFloat(), 1f..30f, "${s.refreshHz} Hz") { v -> vm.updateSettings { it.copy(refreshHz = v.toInt()) } }
 
+    MusicAndCameraSection(vm)
+
     SectionTitle(stringResource(R.string.trips_and_range))
     SwitchRow(stringResource(R.string.trips_record), s.tripsEnabled, stringResource(R.string.trips_record_hint)) { v -> vm.updateSettings { it.copy(tripsEnabled = v) } }
     SliderRow(stringResource(R.string.battery_capacity), s.capacityKwh, 40f..120f, String.format(java.util.Locale.US, "%.1f kWh", s.capacityKwh)) { v -> vm.updateSettings { it.copy(capacityKwh = Math.round(v * 2f) / 2f) } }
@@ -237,9 +239,9 @@ private fun Vehicle(vm: ClusterViewModel) {
     if (st.devices.isEmpty()) Text(stringResource(R.string.not_probed), style = MaterialTheme.typography.bodySmall)
     for (d in st.devices) {
         val c = when (d.status) {
-            ProbeStatus.OK -> Color(0xFF2FE3A0)
+            ProbeStatus.OK -> Color(0xFF90FC9C)
             ProbeStatus.PERMISSION_DENIED -> Color(0xFFFFB020)
-            ProbeStatus.ERROR -> Color(0xFFFF4D4D)
+            ProbeStatus.ERROR -> Color(0xFFFFB020)
             else -> Color.Gray
         }
         Column(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
@@ -281,6 +283,50 @@ private fun Vehicle(vm: ClusterViewModel) {
     SwitchRow(stringResource(R.string.warn_charging), sim.charging, stringResource(R.string.charging_hint)) { v -> vm.updateSim { it.copy(charging = v) } }
     SwitchRow(stringResource(R.string.tyre_low), sim.tyreLow) { v -> vm.updateSim { it.copy(tyreLow = v) } }
     OutlinedButton(onClick = { vm.resetTrip() }) { Text(stringResource(R.string.reset_trip)) }
+}
+
+@Composable
+private fun MusicAndCameraSection(vm: ClusterViewModel) {
+    val s by vm.settings.collectAsState()
+    val media by vm.media.collectAsState()
+    val ctx = LocalContext.current
+    var camGranted by remember { mutableStateOf(androidx.core.content.ContextCompat.checkSelfPermission(ctx, Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED) }
+    val camLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { camGranted = it }
+    val camIds = remember {
+        try { (ctx.getSystemService(Context.CAMERA_SERVICE) as android.hardware.camera2.CameraManager).cameraIdList.joinToString(", ") } catch (t: Throwable) { "" }
+    }
+
+    SectionTitle(stringResource(R.string.music_section))
+    KeyValue(stringResource(R.string.music_access), stringResource(if (vm.hasMediaAccess()) R.string.yes else R.string.no))
+    media?.let { KeyValue(stringResource(R.string.music_now), it.title.ifBlank { it.appLabel } + if (it.artist.isNotBlank()) " – " + it.artist else "") }
+    OutlinedButton(onClick = {
+        ctx.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }) { Text(stringResource(R.string.music_open_access)) }
+    Text(stringResource(R.string.music_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+    SectionTitle(stringResource(R.string.cam_section))
+    SwitchRow(stringResource(R.string.cam_enable), s.reverseCamera, stringResource(R.string.cam_enable_hint)) { v -> vm.updateSettings { it.copy(reverseCamera = v) } }
+    ChoiceRow(stringResource(R.string.cam_source), com.songplus.cluster.data.CamSource.values().toList(), s.camSource,
+        { stringResource(when (it) { com.songplus.cluster.data.CamSource.AUTO -> R.string.cam_src_auto; com.songplus.cluster.data.CamSource.CAMERA2_ID -> R.string.cam_src_id; com.songplus.cluster.data.CamSource.MJPEG_URL -> R.string.cam_src_url }) }
+    ) { v -> vm.updateSettings { it.copy(camSource = v) } }
+    if (s.camSource == com.songplus.cluster.data.CamSource.CAMERA2_ID) {
+        androidx.compose.material3.OutlinedTextField(
+            value = s.camId, onValueChange = { v -> vm.updateSettings { it.copy(camId = v.take(16)) } },
+            label = { Text(stringResource(R.string.cam_id_label)) }, singleLine = true, modifier = Modifier.fillMaxWidth()
+        )
+    }
+    if (s.camSource == com.songplus.cluster.data.CamSource.MJPEG_URL) {
+        androidx.compose.material3.OutlinedTextField(
+            value = s.camUrl, onValueChange = { v -> vm.updateSettings { it.copy(camUrl = v.trim().take(300)) } },
+            label = { Text(stringResource(R.string.cam_url_label)) }, singleLine = true, modifier = Modifier.fillMaxWidth()
+        )
+    }
+    SwitchRow(stringResource(R.string.cam_mirror), s.camMirror) { v -> vm.updateSettings { it.copy(camMirror = v) } }
+    SwitchRow(stringResource(R.string.cam_guides), s.camGuides) { v -> vm.updateSettings { it.copy(camGuides = v) } }
+    KeyValue(stringResource(R.string.cam_permission), stringResource(if (camGranted) R.string.perm_granted else R.string.perm_not_granted))
+    KeyValue(stringResource(R.string.cam_visible), camIds.ifBlank { stringResource(R.string.cam_none_visible) })
+    if (!camGranted) OutlinedButton(onClick = { camLauncher.launch(Manifest.permission.CAMERA) }) { Text(stringResource(R.string.cam_grant)) }
+    Text(stringResource(R.string.cam_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable

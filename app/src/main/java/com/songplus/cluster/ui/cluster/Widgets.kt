@@ -63,6 +63,7 @@ fun ClusterWidget(id: WidgetId, c: WCtx, modifier: Modifier = Modifier) {
     Box(modifier) {
         when (id) {
             WidgetId.AURORA -> AuroraWidget(c)
+            WidgetId.MUSIC -> MusicWidget(c)
             WidgetId.SPEED -> SpeedWidget(c)
             WidgetId.POWER -> PowerWidget(c)
             WidgetId.BATTERY -> BatteryWidget(c)
@@ -411,6 +412,11 @@ private fun TelltaleWidget(c: WCtx) {
 
 @Composable
 private fun CarWidget(c: WCtx) {
+    if (c.reverse) {
+        // Reverse: the camera replaces the car picture (no overlay, no animation).
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { ReverseCameraPanel(c, Modifier.fillMaxSize()) }
+        return
+    }
     val s = c.state
     val hazard = s.hazard.value && s.hazard.available
     val l = (s.leftSignal.value && s.leftSignal.available) || hazard

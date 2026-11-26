@@ -66,6 +66,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 fun widgetName(id: WidgetId): String = stringResource(
     when (id) {
         WidgetId.AURORA -> R.string.wn_aurora
+        WidgetId.MUSIC -> R.string.wn_music
         WidgetId.SPEED -> R.string.wn_speed
         WidgetId.POWER -> R.string.wn_power
         WidgetId.BATTERY -> R.string.wn_battery
