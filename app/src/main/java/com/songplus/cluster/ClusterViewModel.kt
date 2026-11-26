@@ -43,6 +43,18 @@ class ClusterViewModel(app: Application) : AndroidViewModel(app) {
     fun refreshMedia() = c.media.refresh()
     fun hasMediaAccess() = c.media.hasAccess()
 
+    // OBD2 (ELM327 over Bluetooth) — real speed with no vehicle permission
+    val obd2State = c.vehicle.obd2State
+    val obd2Detail = c.vehicle.obd2Detail
+    val obd2Readings = c.vehicle.obd2Readings
+    fun obd2Connect(mac: String) = c.vehicle.obd2Connect(mac)
+    fun obd2Stop() = c.vehicle.obd2Stop()
+    fun obd2Bonded() = c.vehicle.obd2Bonded()
+    fun obd2HasPermission() = c.vehicle.obd2HasPermission()
+
+    /** Read-only probe of the declared BYDAUTO permissions (protection level + grant state). Never changes a grant. */
+    fun probeBydPermissions() = com.songplus.cluster.vehicle.PermissionProbe.run(getApplication())
+
     val trips: StateFlow<List<TripRecord>> = c.trips.trips
     val tripActive: StateFlow<Boolean> = c.vehicle.tripActive
 

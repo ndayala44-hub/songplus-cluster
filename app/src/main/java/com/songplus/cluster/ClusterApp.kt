@@ -5,6 +5,7 @@ import com.songplus.cluster.data.LayoutRepository
 import com.songplus.cluster.data.SettingsStore
 import com.songplus.cluster.data.TripStore
 import com.songplus.cluster.media.MediaRepository
+import com.songplus.cluster.vehicle.Obd2Source
 import com.songplus.cluster.vehicle.VehicleRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,7 +17,8 @@ class AppContainer(app: Application) {
     val settings = SettingsStore(app)
     val layouts = LayoutRepository(app)
     val trips = TripStore(app)
-    val vehicle = VehicleRepository(app, settings, scope, trips)
+    val obd2 = Obd2Source(app)
+    val vehicle = VehicleRepository(app, settings, scope, trips, obd2)
     val media = MediaRepository(app)
 }
 

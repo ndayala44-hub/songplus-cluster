@@ -217,12 +217,16 @@ private fun Vehicle(vm: ClusterViewModel) {
         }) { Text(stringResource(R.string.app_permissions)) }
     }
 
+    BydPermissionProbeSection(vm)
+
     SectionTitle(stringResource(R.string.data_source))
     ChoiceRow(stringResource(R.string.data_mode), DataMode.values().toList(), s.dataMode,
-        { stringResource(when (it) { DataMode.AUTO -> R.string.dm_auto; DataMode.SIMULATION -> R.string.dm_sim; DataMode.BYD_ONLY -> R.string.dm_byd }) },
+        { stringResource(when (it) { DataMode.AUTO -> R.string.dm_auto; DataMode.SIMULATION -> R.string.dm_sim; DataMode.BYD_ONLY -> R.string.dm_byd; DataMode.OBD2 -> R.string.dm_obd2 }) },
         hint = stringResource(R.string.dm_hint)
     ) { v -> vm.updateSettings { it.copy(dataMode = v) } }
     SliderRow(stringResource(R.string.refresh_rate), s.refreshHz.toFloat(), 1f..30f, "${s.refreshHz} Hz") { v -> vm.updateSettings { it.copy(refreshHz = v.toInt()) } }
+
+    Obd2Section(vm)
 
     MusicAndCameraSection(vm)
 
@@ -283,6 +287,83 @@ private fun Vehicle(vm: ClusterViewModel) {
     SwitchRow(stringResource(R.string.warn_charging), sim.charging, stringResource(R.string.charging_hint)) { v -> vm.updateSim { it.copy(charging = v) } }
     SwitchRow(stringResource(R.string.tyre_low), sim.tyreLow) { v -> vm.updateSim { it.copy(tyreLow = v) } }
     OutlinedButton(onClick = { vm.resetTrip() }) { Text(stringResource(R.string.reset_trip)) }
+}
+
+@Composable
+@Composable
+private fun BydPermissionProbeSection(vm: ClusterViewModel) {
+    var report by remember { mutableStateOf<com.songplus.cluster.vehicle.PermissionProbe.Report?>(null) }
+    val permLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        report = vm.probeBydPermissions()
+    }
+    SectionTitle(stringResource(R.string.probe_title))
+    Text(stringResource(R.string.probe_intro), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    OutlinedButton(onClick = { report = vm.probeBydPermissions() }, modifier = Modifier.padding(top = 8.dp)) {
+        Text(stringResource(R.string.probe_run))
+    }
+    report?.let { r ->
+        Text(r.verdict, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(vertical = 8.dp))
+        for (e in r.entries) {
+            val short = e.name.removePrefix("android.permission.BYDAUTO_")
+            val grant = when (e.granted) { true -> stringResource(R.string.perm_granted); false -> stringResource(R.string.perm_not_granted); null -> stringResource(R.string.probe_not_defined) }
+            val c = when { e.granted == true -> Color(0xFF90FC9C); e.grantable -> Color(0xFF00C6FC); else -> Color(0xFFFFB020) }
+            Column(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                KeyValue(short, grant, c)
+                Text(e.protection, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (r.requestable.isNotEmpty()) {
+            Button(onClick = { permLauncher.launch(r.requestable.toTypedArray()) }, modifier = Modifier.padding(top = 8.dp)) {
+                Text(stringResource(R.string.probe_request_grantable))
+            }
+        }
+    }
+}
+
+@Composable
+private fun Obd2Section(vm: ClusterViewModel) {
+    val s by vm.settings.collectAsState()
+    val state by vm.obd2State.collectAsState()
+    val detail by vm.obd2Detail.collectAsState()
+    val readings by vm.obd2Readings.collectAsState()
+    var devices by remember { mutableStateOf<List<com.songplus.cluster.vehicle.Obd2Source.Dev>>(emptyList()) }
+    val btLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        devices = vm.obd2Bonded()
+    }
+
+    SectionTitle(stringResource(R.string.obd2_title))
+    Text(stringResource(R.string.obd2_intro), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    SwitchRow(stringResource(R.string.obd2_enable), s.obd2Enabled, stringResource(R.string.obd2_enable_hint)) { v -> vm.updateSettings { it.copy(obd2Enabled = v) } }
+
+    if (s.obd2Name.isNotBlank() || s.obd2Mac.isNotBlank()) {
+        KeyValue(stringResource(R.string.obd2_adapter), s.obd2Name.ifBlank { s.obd2Mac })
+    }
+
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+        OutlinedButton(onClick = {
+            if (vm.obd2HasPermission()) devices = vm.obd2Bonded()
+            else btLauncher.launch(arrayOf("android.permission.BLUETOOTH_CONNECT"))
+        }) { Text(stringResource(R.string.obd2_scan)) }
+        OutlinedButton(onClick = { if (s.obd2Mac.isNotBlank()) vm.obd2Connect(s.obd2Mac) }) { Text(stringResource(R.string.obd2_connect)) }
+        OutlinedButton(onClick = { vm.obd2Stop() }) { Text(stringResource(R.string.obd2_disconnect)) }
+    }
+
+    for (d in devices) {
+        Text(
+            "${d.name}  ·  ${d.mac}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (d.mac == s.obd2Mac) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.fillMaxWidth().clickable { vm.updateSettings { it.copy(obd2Mac = d.mac, obd2Name = d.name) } }.padding(vertical = 6.dp)
+        )
+    }
+
+    KeyValue(stringResource(R.string.obd2_status), state.name)
+    if (detail.isNotBlank()) Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val spd = readings.speedKmh?.let { "$it km/h" } ?: "--"
+    val rpm = readings.rpm?.let { "$it rpm" } ?: "--"
+    val cool = readings.coolantC?.let { "$it °C" } ?: "--"
+    KeyValue(stringResource(R.string.obd2_live), "$spd   ·   $rpm   ·   $cool")
+    Text(stringResource(R.string.obd2_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp))
 }
 
 @Composable

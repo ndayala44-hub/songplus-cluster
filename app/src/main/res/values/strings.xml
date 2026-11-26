@@ -70,7 +70,7 @@
     <string name="dist_unit">Distance unit</string>
     <string name="dm_auto">Automatic</string>
     <string name="dm_byd">BYD only</string>
-    <string name="dm_hint">Automatic: real BYD data if speed can be read, otherwise labelled simulation. BYD only: never simulates, shows \"--\" when data is missing.</string>
+    <string name="dm_hint">Automatic: real BYD data if speed can be read, otherwise labelled simulation. BYD only: never simulates, shows \"--\" when data is missing. OBD2: real speed from an ELM327 adapter.</string>
     <string name="dm_sim">Simulation</string>
     <string name="door_fl">Door front left open</string>
     <string name="door_fr">Door front right open</string>
@@ -313,4 +313,21 @@
     <string name="cam_lost">Camera signal lost</string>
     <string name="cam_lost_body">Check the camera and its connection</string>
     <string name="cam_error">The camera could not be started</string>
+    <string name="dm_obd2">OBD2 (real)</string>
+    <string name="probe_title">BYD permission probe</string>
+    <string name="probe_intro">Checks each BYDAUTO permission the app declares: whether this head unit defines it, its protection level, and whether it is granted. Read-only — it never changes a grant.</string>
+    <string name="probe_run">Probe BYD permissions</string>
+    <string name="probe_not_defined">not defined here</string>
+    <string name="probe_request_grantable">Request grantable permissions</string>
+    <string name="obd2_title">OBD2 adapter (real speed)</string>
+    <string name="obd2_intro">Reads real speed from a standard ELM327 Bluetooth adapter in the OBD2 port. No vehicle permission needed. Pair the adapter in Android Bluetooth settings first, then select it here and set Data mode to "OBD2 (real)".</string>
+    <string name="obd2_enable">Enable OBD2</string>
+    <string name="obd2_enable_hint">Allow the app to connect to a paired ELM327 adapter.</string>
+    <string name="obd2_adapter">Selected adapter</string>
+    <string name="obd2_scan">Paired adapters</string>
+    <string name="obd2_connect">Connect</string>
+    <string name="obd2_disconnect">Disconnect</string>
+    <string name="obd2_status">Adapter status</string>
+    <string name="obd2_live">Live (speed · rpm · coolant)</string>
+    <string name="obd2_note">Speed uses the standard PID and should work on most cars. Battery percentage and range use proprietary BYD codes that are not verified for this model, so they stay "--" on OBD2. Values are never invented.</string>
 </resources>

@@ -15,7 +15,7 @@ enum class Startup { CLUSTER, DESIGNER, FULLSCREEN }
 enum class OrientationPref { LANDSCAPE, AUTO }
 enum class ThemeMode { SYSTEM, LIGHT, DARK, AUTO_TIME }
 enum class AnimLevel { FULL, REDUCED, OFF }
-enum class DataMode { AUTO, SIMULATION, BYD_ONLY }
+enum class DataMode { AUTO, SIMULATION, BYD_ONLY, OBD2 }
 enum class BatteryDisplay { PERCENT_RANGE, PERCENT, RANGE }
 enum class SpeedDisplayMode { REAL, PERCENT, PLUS_KMH }
 enum class BlinkRate(val periodMs: Int) { NORMAL(600), SLOW(900), FAST(450) }
@@ -77,7 +77,10 @@ data class AppSettings(
     val tripsEnabled: Boolean = true,
     val tripAutoStopSec: Int = 180,
     val tripMinKm: Float = 0.5f,
-    val recordSimTrips: Boolean = false
+    val recordSimTrips: Boolean = false,
+    val obd2Enabled: Boolean = false,
+    val obd2Mac: String = "",
+    val obd2Name: String = ""
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("language", language.name); put("speedUnit", speedUnit.name); put("distUnit", distUnit.name)
@@ -97,6 +100,7 @@ data class AppSettings(
         put("capacityKwh", capacityKwh.toDouble()); put("rangeWindowKm", rangeWindowKm)
         put("tripsEnabled", tripsEnabled); put("tripAutoStopSec", tripAutoStopSec)
         put("tripMinKm", tripMinKm.toDouble()); put("recordSimTrips", recordSimTrips)
+        put("obd2Enabled", obd2Enabled); put("obd2Mac", obd2Mac); put("obd2Name", obd2Name)
     }
 
     companion object {
@@ -144,7 +148,10 @@ data class AppSettings(
                 tripsEnabled = o.optBoolean("tripsEnabled", d.tripsEnabled),
                 tripAutoStopSec = o.optInt("tripAutoStopSec", d.tripAutoStopSec).coerceIn(30, 3600),
                 tripMinKm = o.optDouble("tripMinKm", d.tripMinKm.toDouble()).toFloat().coerceIn(0f, 20f),
-                recordSimTrips = o.optBoolean("recordSimTrips", d.recordSimTrips)
+                recordSimTrips = o.optBoolean("recordSimTrips", d.recordSimTrips),
+                obd2Enabled = o.optBoolean("obd2Enabled", d.obd2Enabled),
+                obd2Mac = o.optString("obd2Mac", d.obd2Mac),
+                obd2Name = o.optString("obd2Name", d.obd2Name)
             )
         }
     }

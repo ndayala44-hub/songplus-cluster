@@ -69,7 +69,7 @@
     <string name="dist_unit">Unité de distance</string>
     <string name="dm_auto">Automatique</string>
     <string name="dm_byd">BYD seulement</string>
-    <string name="dm_hint">Automatique : données BYD réelles si la vitesse est lisible, sinon simulation signalée. BYD seulement : jamais de simulation, « -- » si donnée absente.</string>
+    <string name="dm_hint">Automatique : données BYD réelles si la vitesse est lisible, sinon simulation signalée. BYD seulement : jamais de simulation, « -- » si donnée absente. OBD2 : vitesse réelle via un adaptateur ELM327.</string>
     <string name="dm_sim">Simulation</string>
     <string name="door_fl">Porte avant gauche ouverte</string>
     <string name="door_fr">Porte avant droite ouverte</string>
@@ -312,4 +312,21 @@
     <string name="cam_lost">Signal caméra perdu</string>
     <string name="cam_lost_body">Vérifiez la caméra et sa connexion</string>
     <string name="cam_error">Impossible de démarrer la caméra</string>
+    <string name="dm_obd2">OBD2 (réel)</string>
+    <string name="probe_title">Sonde des permissions BYD</string>
+    <string name="probe_intro">Vérifie chaque permission BYDAUTO déclarée : si cette unité la définit, son niveau de protection et si elle est accordée. Lecture seule — ne modifie jamais une permission.</string>
+    <string name="probe_run">Sonder les permissions BYD</string>
+    <string name="probe_not_defined">non définie ici</string>
+    <string name="probe_request_grantable">Demander les permissions accordables</string>
+    <string name="obd2_title">Adaptateur OBD2 (vitesse réelle)</string>
+    <string name="obd2_intro">Lit la vitesse réelle depuis un adaptateur Bluetooth ELM327 standard sur le port OBD2. Aucune permission véhicule requise. Associez l\'adaptateur dans les réglages Bluetooth d\'Android, puis sélectionnez-le ici et choisissez le mode de données « OBD2 (réel) ».</string>
+    <string name="obd2_enable">Activer OBD2</string>
+    <string name="obd2_enable_hint">Autoriser la connexion à un adaptateur ELM327 associé.</string>
+    <string name="obd2_adapter">Adaptateur sélectionné</string>
+    <string name="obd2_scan">Adaptateurs associés</string>
+    <string name="obd2_connect">Connecter</string>
+    <string name="obd2_disconnect">Déconnecter</string>
+    <string name="obd2_status">État de l\'adaptateur</string>
+    <string name="obd2_live">Direct (vitesse · régime · liquide)</string>
+    <string name="obd2_note">La vitesse utilise le PID standard et fonctionne sur la plupart des voitures. Le pourcentage de batterie et l\'autonomie utilisent des codes BYD propriétaires non vérifiés pour ce modèle : ils restent « -- » en OBD2. Aucune valeur n\'est inventée.</string>
 </resources>

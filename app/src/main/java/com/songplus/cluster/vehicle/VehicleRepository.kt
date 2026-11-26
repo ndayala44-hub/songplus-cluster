@@ -8,6 +8,7 @@ import com.songplus.cluster.data.SettingsStore
 import com.songplus.cluster.data.TripStore
 import com.songplus.cluster.data.na
 import com.songplus.cluster.data.VehicleState
+import com.songplus.cluster.data.real
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -30,7 +31,8 @@ class VehicleRepository(
     context: Context,
     private val settings: SettingsStore,
     private val scope: CoroutineScope,
-    private val tripStore: TripStore
+    private val tripStore: TripStore,
+    private val obd2: Obd2Source
 ) {
     private val byd = BydAutoSource(context.applicationContext)
     private val engine = SimEngine()
@@ -79,8 +81,16 @@ class VehicleRepository(
                 val dt = ((now - last) / 1_000_000_000f).coerceIn(0.001f, 0.5f)
                 last = now
 
+                // OBD2 adapter: connect/disconnect to match the selected mode, so the serial socket is only held when used.
+                if (s.dataMode == DataMode.OBD2) {
+                    if (obd2.state.value == Obd2Source.State.IDLE && s.obd2Mac.isNotBlank()) obd2.connect(s.obd2Mac)
+                } else if (obd2.state.value != Obd2Source.State.IDLE) {
+                    obd2.stop()
+                }
+
                 val real: VehicleState? =
-                    if (s.dataMode != DataMode.SIMULATION && byd.classesPresent) byd.read() else null
+                    if (s.dataMode == DataMode.OBD2) obd2State(obd2.readings.value)
+                    else if (s.dataMode != DataMode.SIMULATION && byd.classesPresent) byd.read() else null
                 // A speed that sticks at zero while the odometer advances is not believable: treat it as unavailable.
                 var checked = real
                 var speedSuspect = false
@@ -92,11 +102,15 @@ class VehicleRepository(
                     }
                 }
                 val real2 = checked
-                val realOk = real2 != null && byd.hasCoreData(real2)
+                val realOk = when (s.dataMode) {
+                    DataMode.OBD2 -> real2 != null && real2.speedKmh.available
+                    else -> real2 != null && byd.hasCoreData(real2)
+                }
 
                 val useSim = when (s.dataMode) {
                     DataMode.SIMULATION -> true
                     DataMode.BYD_ONLY -> false
+                    DataMode.OBD2 -> false
                     DataMode.AUTO -> !realOk
                 }
                 val out: VehicleState
@@ -140,7 +154,24 @@ class VehicleRepository(
         job = null
     }
 
+    /** Build a vehicle state from OBD2 readings: speed is real when the adapter answers, everything else unavailable. */
+    private fun obd2State(r: Obd2Source.Readings): VehicleState {
+        val base = VehicleState.unavailable()
+        val fresh = r.speedKmh != null && System.currentTimeMillis() - r.lastOkMs < 3000L
+        return if (fresh) base.copy(speedKmh = real(r.speedKmh!!.toFloat())) else base
+    }
+
+    val obd2State: StateFlow<Obd2Source.State> get() = obd2.state
+    val obd2Detail: StateFlow<String> get() = obd2.detail
+    val obd2Readings: StateFlow<Obd2Source.Readings> get() = obd2.readings
+    fun obd2Connect(mac: String) = obd2.connect(mac)
+    fun obd2Stop() = obd2.stop()
+    fun obd2Bonded() = obd2.bondedDevices()
+    fun obd2HasPermission() = obd2.hasBtPermission()
+
     private fun describe(mode: DataMode, eff: EffectiveSource, present: Boolean): String = when {
+        mode == DataMode.OBD2 && eff == EffectiveSource.REAL -> "REAL: speed from OBD2 adapter"
+        mode == DataMode.OBD2 -> "OBD2: " + obd2.detail.value.ifBlank { "not connected" }
         eff == EffectiveSource.SIMULATION && mode == DataMode.SIMULATION -> "SIMULATION: simulation mode selected"
         eff == EffectiveSource.SIMULATION && !present -> "SIMULATION: BYD vehicle classes not found on this device"
         eff == EffectiveSource.SIMULATION -> "SIMULATION: BYD classes found but no speed reading (permission or firmware)"
