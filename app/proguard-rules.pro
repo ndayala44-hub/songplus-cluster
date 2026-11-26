@@ -1,0 +1,1 @@
+-keep class android.hardware.bydauto.** { *; }

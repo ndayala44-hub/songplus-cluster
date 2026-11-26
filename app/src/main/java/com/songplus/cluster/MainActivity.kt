@@ -1,0 +1,222 @@
+package com.songplus.cluster
+
+import android.content.pm.ActivityInfo
+import android.os.Bundle
+import android.view.WindowManager
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.setContent
+import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.core.os.LocaleListCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import com.songplus.cluster.data.AppSettings
+import com.songplus.cluster.data.Lang
+import com.songplus.cluster.data.OrientationPref
+import com.songplus.cluster.data.Startup
+import com.songplus.cluster.ui.cluster.ClusterCanvas
+import com.songplus.cluster.ui.cluster.IntroOverlay
+import com.songplus.cluster.ui.designer.DesignerScreen
+import com.songplus.cluster.ui.settings.SettingsScreen
+import com.songplus.cluster.ui.trips.TripsScreen
+import com.songplus.cluster.ui.theme.AppTheme
+import com.songplus.cluster.ui.theme.accentFor
+import com.songplus.cluster.ui.theme.resolveDark
+import kotlinx.coroutines.delay
+
+private enum class Screen { CLUSTER, TRIPS, DESIGNER, SETTINGS }
+
+class MainActivity : AppCompatActivity() {
+    private val vm: ClusterViewModel by viewModels()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, true)
+        val startup = vm.settings.value.startup
+        setContent {
+            val settings by vm.settings.collectAsState()
+            val sysDark = isSystemInDarkTheme()
+            val tick by produceState(0) { while (true) { delay(30_000); value += 1 } }
+            val dark = remember(settings.themeMode, settings.autoDarkFromHour, settings.autoDarkToHour, sysDark, tick) {
+                resolveDark(settings, sysDark)
+            }
+            ApplyWindowSettings(settings)
+            AppTheme(dark) {
+                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    AppRoot(startup, dark, settings)
+                }
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        vm.startVehicle()
+    }
+
+    override fun onStop() {
+        vm.stopVehicle()
+        super.onStop()
+    }
+
+    @Composable
+    private fun ApplyWindowSettings(s: AppSettings) {
+        LaunchedEffect(s.language) {
+            val wanted = if (s.language == Lang.SYSTEM) LocaleListCompat.getEmptyLocaleList() else LocaleListCompat.forLanguageTags(s.language.tag)
+            if (AppCompatDelegate.getApplicationLocales().toLanguageTags() != wanted.toLanguageTags()) {
+                AppCompatDelegate.setApplicationLocales(wanted)
+            }
+        }
+        LaunchedEffect(s.orientation) {
+            requestedOrientation =
+                if (s.orientation == OrientationPref.LANDSCAPE) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                else ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+        LaunchedEffect(s.keepScreenOn) {
+            if (s.keepScreenOn) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        LaunchedEffect(s.brightness) {
+            val lp = window.attributes
+            lp.screenBrightness = if (s.brightness > 0f) s.brightness.coerceIn(0.1f, 1f) else WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+            window.attributes = lp
+        }
+    }
+
+    private fun setBarsHidden(hidden: Boolean) {
+        val c = WindowInsetsControllerCompat(window, window.decorView)
+        if (hidden) {
+            c.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            c.hide(WindowInsetsCompat.Type.systemBars())
+        } else {
+            c.show(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    @Composable
+    private fun AppRoot(startup: Startup, dark: Boolean, settings: AppSettings) {
+        var screen by remember { mutableStateOf(if (startup == Startup.DESIGNER) Screen.DESIGNER else Screen.CLUSTER) }
+        var chromeHidden by remember { mutableStateOf(startup == Startup.FULLSCREEN) }
+        var menuVisible by remember { mutableStateOf(false) }
+        var menuStamp by remember { mutableIntStateOf(0) }
+        var intro by remember { mutableStateOf(settings.playIntro) }
+
+        LaunchedEffect(screen, settings.hideSystemBars, chromeHidden) {
+            setBarsHidden(screen == Screen.CLUSTER && (settings.hideSystemBars || chromeHidden))
+        }
+        LaunchedEffect(menuStamp) {
+            if (menuVisible) {
+                delay(6_000)
+                menuVisible = false
+            }
+        }
+        BackHandler(enabled = screen != Screen.CLUSTER) { screen = Screen.CLUSTER }
+
+        Box(Modifier.fillMaxSize()) {
+            when (screen) {
+                Screen.CLUSTER -> ClusterFullScreen(
+                    dark, settings,
+                    onTap = { if (!chromeHidden) { menuVisible = true; menuStamp++ } },
+                    onLongPress = { menuVisible = true; menuStamp++ }
+                )
+                else -> Row(Modifier.fillMaxSize()) {
+                    Rail(screen) { screen = it }
+                    Box(Modifier.weight(1f).fillMaxHeight()) {
+                        when (screen) {
+                            Screen.DESIGNER -> DesignerScreen(vm)
+                            Screen.TRIPS -> TripsScreen(vm)
+                            else -> SettingsScreen(vm, onOpenDesigner = { screen = Screen.DESIGNER })
+                        }
+                    }
+                }
+            }
+            if (screen == Screen.CLUSTER && menuVisible) {
+                Surface(
+                    Modifier.align(Alignment.CenterStart).padding(12.dp),
+                    shape = RoundedCornerShape(16.dp), tonalElevation = 6.dp, shadowElevation = 8.dp
+                ) {
+                    Rail(screen, compact = true) { screen = it; menuVisible = false }
+                }
+            }
+            if (intro && screen == Screen.CLUSTER) {
+                val cfg = remember(settings.activeLayoutId) { vm.activeLayout() }
+                val mode by vm.vehicle.collectAsState()
+                IntroOverlay(accentFor(settings, cfg, mode.mode.value, dark), dark) { intro = false }
+            }
+        }
+    }
+
+    @Composable
+    private fun ClusterFullScreen(dark: Boolean, settings: AppSettings, onTap: () -> Unit, onLongPress: () -> Unit) {
+        val state by vm.vehicle.collectAsState()
+        val status by vm.status.collectAsState()
+        val users by vm.userLayouts.collectAsState()
+        val projection by vm.projection.collectAsState()
+        val cfg = remember(settings.activeLayoutId, users) { vm.activeLayout() }
+        val gestures = Modifier.fillMaxSize().pointerInput(Unit) {
+            detectTapGestures(onTap = { onTap() }, onLongPress = { onLongPress() })
+        }
+        if (settings.factoryPanelOnly) {
+            // Draws nothing, so the car's own cluster (or a black screen on a normal display) stays visible.
+            Box(gestures.background(androidx.compose.ui.graphics.Color.Black), contentAlignment = Alignment.BottomCenter) {
+                Text(
+                    stringResource(R.string.factory_panel_active),
+                    color = androidx.compose.ui.graphics.Color(0xFF8C98A6),
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        } else {
+            ClusterCanvas(state, cfg, settings, status, dark, gestures, projection = projection)
+        }
+    }
+
+    @Composable
+    private fun Rail(current: Screen, compact: Boolean = false, onSelect: (Screen) -> Unit) {
+        Column(
+            Modifier.then(if (compact) Modifier else Modifier.fillMaxHeight().background(MaterialTheme.colorScheme.surface)).width(if (compact) 150.dp else 130.dp).padding(8.dp),
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
+        ) {
+            val items = listOf(Screen.CLUSTER to R.string.nav_cluster, Screen.TRIPS to R.string.nav_trips, Screen.DESIGNER to R.string.nav_designer, Screen.SETTINGS to R.string.nav_settings)
+            for ((s, label) in items) {
+                TextButton(onClick = { onSelect(s) }, modifier = Modifier.padding(vertical = 4.dp)) {
+                    Text(
+                        stringResource(label),
+                        color = if (s == current) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                }
+            }
+        }
+    }
+}

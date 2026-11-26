@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      BYD vehicle-data permissions. These are defined by BYD's firmware, not by AOSP. On a stock Android
+      device they simply stay ungranted (the app then runs in labelled simulation mode). On a BYD head unit
+      they are granted only if the ROM/signature allows it (see docs/VEHICLE_SUPPORT.md). The app never
+      assumes they are granted: every read is guarded and every value carries its data source.
+    -->
+    <uses-permission android:name="android.permission.BYDAUTO_SPEED_COMMON"/>
+    <uses-permission android:name="android.permission.BYDAUTO_SPEED_GET"/>
+    <uses-permission android:name="android.permission.BYDAUTO_ENERGY_COMMON"/>
+    <uses-permission android:name="android.permission.BYDAUTO_ENERGY_GET"/>
+    <uses-permission android:name="android.permission.BYDAUTO_GEARBOX_COMMON"/>
+    <uses-permission android:name="android.permission.BYDAUTO_GEARBOX_GET"/>
+    <uses-permission android:name="android.permission.BYDAUTO_LIGHT_COMMON"/>
+    <uses-permission android:name="android.permission.BYDAUTO_LIGHT_GET"/>
+    <uses-permission android:name="android.permission.BYDAUTO_BODYWORK_COMMON"/>
+    <uses-permission android:name="android.permission.BYDAUTO_BODYWORK_GET"/>
+    <uses-permission android:name="android.permission.BYDAUTO_DOOR_LOCK_COMMON"/>
+    <uses-permission android:name="android.permission.BYDAUTO_DOOR_LOCK_GET"/>
+    <uses-permission android:name="android.permission.BYDAUTO_TYRE_COMMON"/>
+    <uses-permission android:name="android.permission.BYDAUTO_TYRE_GET"/>
+    <uses-permission android:name="android.permission.BYDAUTO_INSTRUMENT_COMMON"/>
+    <uses-permission android:name="android.permission.BYDAUTO_INSTRUMENT_GET"/>
+    <uses-permission android:name="android.permission.BYDAUTO_SENSOR_GET"/>
+
+    <application
+        android:name=".ClusterApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.SongPlusCluster">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|density|uiMode"
+            android:resizeableActivity="true"
+            android:screenOrientation="sensorLandscape"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
