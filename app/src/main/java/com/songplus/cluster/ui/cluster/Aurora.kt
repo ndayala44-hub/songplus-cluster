@@ -386,12 +386,14 @@ internal fun AuroraWidget(c: WCtx) {
                 val last = hist.last().coerceIn(-1f, 1f)
                 drawCircle(a(if (last < 0f) mint else acc), 3.5f * u, Offset(x0 + (x1 - x0) * (hist.size - 1) / 55f, y0 - last * h * 0.9f))
             }
-            t(measurer, "AVG", (x0 + x1) / 2f, Y(366f), 11f * u, a(fg, 0.55f), FontWeight.Medium, 0, 1.5f * u)
-            t(measurer, "$avgWh $avgUnit", (x0 + x1) / 2f, Y(388f), 17f * u, a(fg, 0.92f), FontWeight.Medium)
+            if (!reverse) {
+                t(measurer, "AVG", (x0 + x1) / 2f, Y(366f), 11f * u, a(fg, 0.55f), FontWeight.Medium, 0, 1.5f * u)
+                t(measurer, "$avgWh $avgUnit", (x0 + x1) / 2f, Y(388f), 17f * u, a(fg, 0.92f), FontWeight.Medium)
+            }
         }
 
         // ================= centre-right: trip / odometer =================
-        run {
+        if (!reverse) run {
             val xc = X(255f)
             t(measurer, "TRIP", xc, Y(300f), 11f * u, a(fg, 0.55f), FontWeight.Medium, 0, 1.5f * u)
             t(measurer, "$tripTxt ${Units.distanceLabel(du)}", xc, Y(324f), 19f * u, a(fg, 0.95f), FontWeight.Medium)
