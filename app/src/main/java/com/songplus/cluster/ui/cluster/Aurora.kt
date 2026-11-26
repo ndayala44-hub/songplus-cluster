@@ -256,7 +256,7 @@ internal fun AuroraWidget(c: WCtx) {
                     if (s0 >= fill) break
                     val sw = min(segLen * 0.8f, fill - s0)
                     val pos = ((s0 + sw / 2f) / full).coerceIn(0f, 1f)
-                    val col = if (charging) mix(mint, fg, pulse * 0.2f) else mix(CORAL, acc, (pos * 1.25f).coerceAtMost(1f))
+                    val col = if (charging) mix(mint, fg, pulse * 0.2f) else (if (pos < 0.45f) mix(CORAL, AMBER, pos / 0.45f) else mix(AMBER, acc, ((pos - 0.45f) / 0.35f).coerceIn(0f, 1f)))
                     drawArc(a(col, 0.16f), start + s0, sw, false, Offset(lc.x - rOut, lc.y - rOut), Size(rOut * 2, rOut * 2), style = Stroke(26f * u))
                     drawArc(a(col, 0.95f), start + s0, sw, false, Offset(lc.x - rOut, lc.y - rOut), Size(rOut * 2, rOut * 2), style = Stroke(9f * u))
                     drawArc(a(col, 0.9f), start + s0, sw, false, Offset(lc.x - ri, lc.y - ri), Size(ri * 2, ri * 2), style = Stroke(2f * u))
