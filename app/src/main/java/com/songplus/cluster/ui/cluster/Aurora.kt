@@ -179,23 +179,25 @@ internal fun AuroraWidget(c: WCtx) {
     val gearSel = if (s.gear.available) s.gear.value else null
 
     Canvas(Modifier.fillMaxSize()) {
-        val u = size.height / 720f
+        // design space is 1920 x 720; on other aspect ratios it is scaled to fit and centred vertically
+        val u = min(size.height / 720f, size.width / 1920f)
         val cx = size.width / 2f
+        val oy = (size.height - 720f * u) / 2f
         fun X(dx: Float) = cx + dx * u
-        fun Y(dy: Float) = dy * u
+        fun Y(dy: Float) = oy + dy * u
         val ease = reveal.value
         val fa = ((ease - 0.25f) / 0.6f).coerceIn(0f, 1f)          // overall fade-in
         val sweepK = (ease / 0.85f).coerceIn(0f, 1f)               // arcs draw in over the first part
         val pulse = 0.5f + 0.5f * sin(clock.floatValue * 5.2f)
         fun a(col: Color, k: Float = 1f) = col.copy(alpha = (col.alpha * k * fa).coerceIn(0f, 1f))
 
-        drawBackground(u, cx, acc, power, ambient, brake)
+        drawBackground(u, cx, oy, acc, power, ambient, brake)
 
         // ================= centre: road / charging scene =================
         val vp = Offset(X(0f), Y(ROAD_VP_Y))
         val bottomY = Y(ROAD_BOTTOM_Y)
         if (!charging) {
-            drawRoad(u, cx, acc, roadPhase.floatValue, speedFrac, leftOn && blink, rightOn && blink, lightsK, highK, brake, fa, clock.floatValue, s.outsideTempC.available && tempC <= 3f)
+            drawRoad(u, cx, oy, acc, roadPhase.floatValue, speedFrac, leftOn && blink, rightOn && blink, lightsK, highK, brake, fa, clock.floatValue, s.outsideTempC.available && tempC <= 3f)
         } else {
             for (i in 0 until 3) {
                 val tk = ((clock.floatValue * 0.45f) + i / 3f) % 1f
@@ -443,7 +445,7 @@ private fun DrawScope.drawBolt(x: Float, y: Float, s: Float, color: Color) {
     drawPath(p, color, style = Fill)
 }
 
-private fun DrawScope.drawBackground(u: Float, cx: Float, acc: Color, power: Float, ambient: Float, brake: Float) {
+private fun DrawScope.drawBackground(u: Float, cx: Float, oy: Float, acc: Color, power: Float, ambient: Float, brake: Float) {
     val top = mix(Color(0xFF1E2038), Color(0xFF0E0F1D), ambient)
     val bot = mix(Color(0xFF12131F), Color(0xFF06060D), ambient)
     drawRect(Brush.verticalGradient(listOf(top, bot)))
@@ -451,33 +453,33 @@ private fun DrawScope.drawBackground(u: Float, cx: Float, acc: Color, power: Flo
     drawRect(
         Brush.radialGradient(
             listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f)),
-            Offset(cx, 360f * u), 1250f * u
+            Offset(cx, oy + 360f * u), 1250f * u
         )
     )
     // accent glow under the car reacts to power; red flash when braking
     val k = 0.10f + 0.22f * abs(power)
     drawCircle(
-        Brush.radialGradient(listOf(acc.copy(alpha = k), Color.Transparent), Offset(cx, 600f * u), 430f * u),
-        430f * u, Offset(cx, 600f * u)
+        Brush.radialGradient(listOf(acc.copy(alpha = k), Color.Transparent), Offset(cx, oy + 600f * u), 430f * u),
+        430f * u, Offset(cx, oy + 600f * u)
     )
     if (brake > 0.01f) {
         drawCircle(
-            Brush.radialGradient(listOf(Color(0xFFFF2A2A).copy(alpha = 0.40f * brake), Color.Transparent), Offset(cx, 600f * u), 330f * u),
-            330f * u, Offset(cx, 600f * u)
+            Brush.radialGradient(listOf(Color(0xFFFF2A2A).copy(alpha = 0.40f * brake), Color.Transparent), Offset(cx, oy + 600f * u), 330f * u),
+            330f * u, Offset(cx, oy + 600f * u)
         )
     }
     drawRoundRect(
-        Color.White.copy(alpha = 0.06f), Offset(2f * u, 2f * u), Size(size.width - 4f * u, size.height - 4f * u),
+        Color.White.copy(alpha = 0.06f), Offset(2f * u, oy + 2f * u), Size(size.width - 4f * u, 720f * u - 4f * u),
         androidx.compose.ui.geometry.CornerRadius(34f * u, 34f * u), style = Stroke(1.5f * u)
     )
 }
 
 private fun DrawScope.drawRoad(
-    u: Float, cx: Float, acc: Color, phase: Float, speedFrac: Float,
+    u: Float, cx: Float, oy: Float, acc: Color, phase: Float, speedFrac: Float,
     leftSig: Boolean, rightSig: Boolean, lights: Float, high: Float, brake: Float, fade: Float, clock: Float, cold: Boolean
 ) {
-    val vp = Offset(cx, ROAD_VP_Y * u)
-    val by = ROAD_BOTTOM_Y * u
+    val vp = Offset(cx, oy + ROAD_VP_Y * u)
+    val by = oy + ROAD_BOTTOM_Y * u
     val tint = if (cold) ICE else Color.White
     // road surface
     val road = Path().apply {

@@ -6,6 +6,10 @@ adb shell wm size 1920x720
 adb shell wm density 213
 adb shell settings put system accelerometer_rotation 0
 adb shell settings put system user_rotation 1
+adb shell wm user-rotation lock 1
+adb shell settings put secure immersive_mode_confirmations confirmed
+sleep 5
+adb shell wm size; adb shell wm density
 mkdir -p shots
 shot() { sleep 7; adb exec-out screencap -p > "shots/$1.png"; }
 open() { adb shell am force-stop com.songplus.cluster; adb shell am start -n com.songplus.cluster/.MainActivity "${@:2}"; shot "$1"; }
