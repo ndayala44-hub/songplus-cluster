@@ -4,7 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /** Every widget the cluster can show. */
-enum class WidgetId { SPEED, POWER, BATTERY, RANGE, GEAR, MODE, TELLTALES, CAR, TRIP, TYRES, CLOCK, WARNINGS, CONSUMPTION, PROJECTION }
+enum class WidgetId { AURORA, SPEED, POWER, BATTERY, RANGE, GEAR, MODE, TELLTALES, CAR, TRIP, TYRES, CLOCK, WARNINGS, CONSUMPTION, PROJECTION }
 
 enum class GaugeStyle { RING, BAR, DIGITAL, DIAL }
 enum class BgStyle { SOLID, GRADIENT, GRID }
@@ -164,6 +164,7 @@ object BuiltinLayouts {
 
     const val SPORT_ID = "builtin_sport"
     const val TRIPS_ID = "builtin_trips"
+    const val AURORA_ID = "builtin_aurora"
 
     /** Adds any widget a layout does not mention as hidden, so every layout covers every widget. */
     private fun full(c: ClusterConfig): ClusterConfig =
@@ -209,7 +210,21 @@ object BuiltinLayouts {
         )
     ))
 
-    fun all(): List<ClusterConfig> = listOf(classic(), focus(), minimal(), sport(), trips())
+    /** Slick reactive scene: ring gauges, moving road, glow that follows power, braking, lights and mode. */
+    fun aurora(): ClusterConfig = full(ClusterConfig(
+        id = AURORA_ID, name = "Aurora – reactive scene", builtin = true,
+        gauge = GaugeStyle.RING, glow = true, font = FontStyle.LIGHT, background = BgStyle.SOLID,
+        darkPalette = 1, lightPalette = 1,
+        accentSource = AccentSource.FIXED, fixedAccent = 0xFFFF2D55.toInt(),
+        widgets = mapOf(
+            WidgetId.AURORA to w(true, 0f, 0f, 1f, 1f),
+            WidgetId.CAR to w(true, 0.37f, 0.45f, 0.26f, 0.37f),
+            WidgetId.TELLTALES to w(true, 0.33f, 0.115f, 0.34f, 0.07f),
+            WidgetId.WARNINGS to w(true, 0.32f, 0.835f, 0.36f, 0.065f)
+        )
+    ))
+
+    fun all(): List<ClusterConfig> = listOf(aurora(), classic(), focus(), minimal(), sport(), trips())
 
     fun byId(id: String): ClusterConfig? = all().firstOrNull { it.id == id }
 }

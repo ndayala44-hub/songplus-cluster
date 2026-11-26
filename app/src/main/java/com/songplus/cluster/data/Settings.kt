@@ -46,7 +46,7 @@ data class AppSettings(
     val animation: AnimLevel = AnimLevel.FULL,
     /** 0 = leave brightness to the system, otherwise 0.1..1.0 applied to this app's window. */
     val brightness: Float = 0f,
-    val activeLayoutId: String = BuiltinLayouts.CLASSIC_ID,
+    val activeLayoutId: String = BuiltinLayouts.AURORA_ID,
     val batteryDisplay: BatteryDisplay = BatteryDisplay.PERCENT_RANGE,
     val blinkRate: BlinkRate = BlinkRate.NORMAL,
     val showHazardBanner: Boolean = true,

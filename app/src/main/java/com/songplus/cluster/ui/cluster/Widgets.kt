@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -61,6 +62,7 @@ private const val MAX_KMH = 200f
 fun ClusterWidget(id: WidgetId, c: WCtx, modifier: Modifier = Modifier) {
     Box(modifier) {
         when (id) {
+            WidgetId.AURORA -> AuroraWidget(c)
             WidgetId.SPEED -> SpeedWidget(c)
             WidgetId.POWER -> PowerWidget(c)
             WidgetId.BATTERY -> BatteryWidget(c)
@@ -414,7 +416,10 @@ private fun CarWidget(c: WCtx) {
     val l = (s.leftSignal.value && s.leftSignal.available) || hazard
     val r = (s.rightSignal.value && s.rightSignal.available) || hazard
     val glowAlpha = smooth(if (s.lowBeam.value) 1f else 0f, c.settings.animation)
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    // the rear squats a little under power and lifts under regeneration
+    val bob = smooth(if (s.powerNorm.available) s.powerNorm.value.coerceIn(-1f, 1f) else 0f, c.settings.animation)
+    val bobPx = c.scale.px(5f)
+    Box(Modifier.fillMaxSize().graphicsLayer { translationY = bob * bobPx }, contentAlignment = Alignment.Center) {
         // soft accent glow under the car
         Canvas(Modifier.fillMaxSize()) {
             drawOval(c.accent.copy(alpha = if (c.cfg.glow) 0.16f else 0.06f), Offset(size.width * 0.1f, size.height * 0.78f), Size(size.width * 0.8f, size.height * 0.14f))

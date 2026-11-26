@@ -274,5 +274,6 @@
     <string name="trips_record">Record trips automatically</string>
     <string name="trips_record_hint">Only real vehicle data is recorded unless you enable simulated trips.</string>
     <string name="w_projected">PROJECTED RANGE</string>
+    <string name="wn_aurora">Aurora scene</string>
     <string name="wn_projection">Range projection</string>
 </resources>

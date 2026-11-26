@@ -273,5 +273,6 @@
     <string name="trips_record">Enregistrer les trajets automatiquement</string>
     <string name="trips_record_hint">Seules les données réelles sont enregistrées, sauf si vous activez les trajets simulés.</string>
     <string name="w_projected">AUTONOMIE PROJETÉE</string>
+    <string name="wn_aurora">Scène Aurora</string>
     <string name="wn_projection">Projection d\'autonomie</string>
 </resources>
