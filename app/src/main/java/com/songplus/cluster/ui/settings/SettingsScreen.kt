@@ -72,8 +72,8 @@ private enum class Cat(val title: Int) {
 }
 
 @Composable
-fun SettingsScreen(vm: ClusterViewModel, onOpenDesigner: () -> Unit, modifier: Modifier = Modifier) {
-    var cat by remember { mutableStateOf(Cat.GENERAL) }
+fun SettingsScreen(vm: ClusterViewModel, onOpenDesigner: () -> Unit, modifier: Modifier = Modifier, initialCategory: Int = 0) {
+    var cat by remember { mutableStateOf(Cat.values().getOrElse(initialCategory) { Cat.GENERAL }) }
     Row(modifier.fillMaxSize()) {
         Column(Modifier.width(240.dp).fillMaxHeight().background(MaterialTheme.colorScheme.surface).padding(8.dp)) {
             for (c in Cat.values()) {

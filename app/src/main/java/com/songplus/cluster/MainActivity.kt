@@ -64,6 +64,11 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, true)
         val startup = vm.settings.value.startup
+        // Debug builds only: lets automated tests open a given screen and seed clearly labelled demo trips.
+        val debuggable = (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        val openScreen = if (debuggable) intent.getStringExtra("screen") else null
+        val openCat = if (debuggable) intent.getIntExtra("cat", 0) else 0
+        if (debuggable && intent.getBooleanExtra("seed_demo", false)) vm.seedDemoTrips()
         setContent {
             val settings by vm.settings.collectAsState()
             val sysDark = isSystemInDarkTheme()
@@ -74,7 +79,7 @@ class MainActivity : AppCompatActivity() {
             ApplyWindowSettings(settings)
             AppTheme(dark) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    AppRoot(startup, dark, settings)
+                    AppRoot(startup, dark, settings, openScreen, openCat)
                 }
             }
         }
@@ -125,12 +130,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     @Composable
-    private fun AppRoot(startup: Startup, dark: Boolean, settings: AppSettings) {
-        var screen by remember { mutableStateOf(if (startup == Startup.DESIGNER) Screen.DESIGNER else Screen.CLUSTER) }
+    private fun AppRoot(startup: Startup, dark: Boolean, settings: AppSettings, openScreen: String?, openCat: Int) {
+        var screen by remember {
+            mutableStateOf(
+                when (openScreen) {
+                    "trips" -> Screen.TRIPS
+                    "designer" -> Screen.DESIGNER
+                    "settings" -> Screen.SETTINGS
+                    "cluster" -> Screen.CLUSTER
+                    else -> if (startup == Startup.DESIGNER) Screen.DESIGNER else Screen.CLUSTER
+                }
+            )
+        }
         var chromeHidden by remember { mutableStateOf(startup == Startup.FULLSCREEN) }
         var menuVisible by remember { mutableStateOf(false) }
         var menuStamp by remember { mutableIntStateOf(0) }
-        var intro by remember { mutableStateOf(settings.playIntro) }
+        var intro by remember { mutableStateOf(settings.playIntro && openScreen == null) }
 
         LaunchedEffect(screen, settings.hideSystemBars, chromeHidden) {
             setBarsHidden(screen == Screen.CLUSTER && (settings.hideSystemBars || chromeHidden))
@@ -156,7 +171,7 @@ class MainActivity : AppCompatActivity() {
                         when (screen) {
                             Screen.DESIGNER -> DesignerScreen(vm)
                             Screen.TRIPS -> TripsScreen(vm)
-                            else -> SettingsScreen(vm, onOpenDesigner = { screen = Screen.DESIGNER })
+                            else -> SettingsScreen(vm, onOpenDesigner = { screen = Screen.DESIGNER }, initialCategory = openCat)
                         }
                     }
                 }

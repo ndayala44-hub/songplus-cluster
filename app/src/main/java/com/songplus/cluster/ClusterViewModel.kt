@@ -50,6 +50,29 @@ class ClusterViewModel(app: Application) : AndroidViewModel(app) {
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    /** Debug builds only: adds a few trips, all flagged simulated, so screenshots of the Trips screen are not empty. */
+    fun seedDemoTrips() {
+        if (c.trips.trips.value.isNotEmpty()) return
+        val now = System.currentTimeMillis()
+        val day = 86_400_000L
+        val specs = listOf(
+            Triple(24.8f, 4.1f, 52f), Triple(8.2f, 1.5f, 31f), Triple(61.3f, 9.8f, 78f),
+            Triple(3.9f, 0.8f, 24f), Triple(112.4f, 17.9f, 88f), Triple(15.6f, 2.6f, 45f)
+        )
+        specs.forEachIndexed { i, (km, kwh, avg) ->
+            val start = now - (i + 1) * day - 3_600_000L
+            val secs = (km / avg * 3600f).toInt()
+            val speeds = List(60) { k -> (avg * (0.4f + 0.9f * kotlin.math.abs(kotlin.math.sin(k / 7.0 + i))).toFloat()).toInt() }
+            c.trips.add(
+                TripRecord(
+                    id = start, startMs = start, endMs = start + secs * 1000L, distanceKm = km, movingSec = (secs * 0.93f).toInt(),
+                    avgKmh = avg * 1.05f, maxKmh = avg * 1.7f, socStart = 90f - i * 4f, socEnd = 90f - i * 4f - kwh / c.settings.value.capacityKwh * 100f,
+                    energyKwh = kwh, ecoSec = secs / 3, normalSec = secs / 2, sportSec = secs / 6, simulated = true, speeds = speeds
+                )
+            )
+        }
+    }
+
     fun deleteTrip(id: Long) = c.trips.delete(id)
     fun clearTrips() = c.trips.clear()
     fun deleteSimulatedTrips() = c.trips.deleteSimulated()

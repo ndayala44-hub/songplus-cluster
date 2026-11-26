@@ -63,3 +63,65 @@ jobs:
           gh release create "build-${{ github.run_number }}" songplus-cluster-debug.apk \
             --title "Debug build ${{ github.run_number }}" \
             --notes "Debug-signed APK built from commit ${{ github.sha }}. Not yet tested on a BYD head unit."
+
+  screenshots:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: songplus-cluster-debug-apk
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Take screenshots on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_tablet
+          disable-animations: true
+          script: |
+            adb install -r app-debug.apk
+            adb shell wm size 1920x720
+            adb shell wm density 213
+            adb shell settings put system accelerometer_rotation 0
+            adb shell settings put system user_rotation 1
+            mkdir -p shots
+            shot() { sleep 6; adb exec-out screencap -p > "shots/$1.png"; }
+            adb shell am start -n com.songplus.cluster/.MainActivity --es screen cluster --ez seed_demo true
+            shot 01_cluster_simulation
+            adb shell am force-stop com.songplus.cluster
+            adb shell am start -n com.songplus.cluster/.MainActivity --es screen trips --ez seed_demo true
+            shot 02_trips
+            adb shell am force-stop com.songplus.cluster
+            adb shell am start -n com.songplus.cluster/.MainActivity --es screen designer
+            shot 03_designer
+            adb shell am force-stop com.songplus.cluster
+            adb shell am start -n com.songplus.cluster/.MainActivity --es screen settings --ei cat 0
+            shot 04_settings_general
+            adb shell am force-stop com.songplus.cluster
+            adb shell am start -n com.songplus.cluster/.MainActivity --es screen settings --ei cat 2
+            shot 05_settings_cluster
+            adb shell am force-stop com.songplus.cluster
+            adb shell am start -n com.songplus.cluster/.MainActivity --es screen settings --ei cat 3
+            shot 06_settings_vehicle
+            adb shell am force-stop com.songplus.cluster
+            adb shell am start -n com.songplus.cluster/.MainActivity --es screen settings --ei cat 1
+            shot 07_settings_appearance
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: shots/*.png
+
+      - name: Attach screenshots to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "build-${{ github.run_number }}" shots/*.png --clobber --repo "${{ github.repository }}"
