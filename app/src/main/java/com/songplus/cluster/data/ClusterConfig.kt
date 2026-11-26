@@ -221,7 +221,7 @@ object BuiltinLayouts {
             WidgetId.CAR to w(true, 0.37f, 0.45f, 0.26f, 0.37f),
             WidgetId.TELLTALES to w(true, 0.33f, 0.115f, 0.34f, 0.07f),
             WidgetId.WARNINGS to w(true, 0.32f, 0.835f, 0.36f, 0.065f),
-            WidgetId.MUSIC to w(true, 0.31f, 0.845f, 0.38f, 0.12f)
+            WidgetId.MUSIC to w(true, 0.31f, 0.835f, 0.38f, 0.108f)
         )
     ))
 
