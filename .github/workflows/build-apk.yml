@@ -17,14 +17,32 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # The ubuntu-latest runner image already ships the Android SDK; Gradle downloads the platform it needs.
+      # Installs Gradle 8.9 itself (the repo carries no wrapper jar). The runner image already ships the Android SDK.
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
 
       - name: Unit tests
-        run: ./gradlew --no-daemon testDebugUnitTest
+        run: |
+          set +e
+          gradle --no-daemon --console=plain testDebugUnitTest 2>&1 | tee test.log
+          code=${PIPESTATUS[0]}
+          if [ $code -ne 0 ]; then
+            msg=$(grep -E "^e: |error:|FAILED|Exception|What went wrong" -A2 test.log | head -80 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=Unit tests failed::$msg"
+          fi
+          exit $code
 
       - name: Build debug APK
-        run: ./gradlew --no-daemon assembleDebug
+        run: |
+          set +e
+          gradle --no-daemon --console=plain assembleDebug 2>&1 | tee build.log
+          code=${PIPESTATUS[0]}
+          if [ $code -ne 0 ]; then
+            msg=$(grep -E "^e: |error:|What went wrong" -A2 build.log | head -120 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=Build failed::$msg"
+          fi
+          exit $code
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
