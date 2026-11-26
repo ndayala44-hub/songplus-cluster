@@ -19,31 +19,30 @@ class ModePaletteTest {
         return listOf(p.accent, p.accent2, p.bgTop, p.bgBottom, p.alert, p.brake)
     }
 
-    @Test fun redOnlyInSport() {
+    @Test fun redIsNeverAModeColour() {
         for (dark in listOf(true, false)) {
-            for (m in listOf(DriveMode.ECO, DriveMode.NORMAL)) {
-                for (c in colors(m, dark)) assertFalse("red found in $m dark=$dark: $c", isRedHue(c))
+            for (m in DriveMode.values()) {
+                val p = modePalette(m, dark)
+                for (c in listOf(p.accent, p.accent2, p.bgTop, p.bgBottom, p.edge)) assertFalse("red mode colour in $m dark=$dark: $c", isRedHue(c))
+                assertTrue("alert must stay a warning red", isRedHue(p.alert))
             }
-            val sport = modePalette(DriveMode.SPORT, dark)
-            assertTrue("Sport accent must be red", isRedHue(sport.accent))
-            assertTrue("Sport alert must be red", isRedHue(sport.alert))
         }
     }
 
-    @Test fun brandColoursAreNotRedExceptSport() {
-        assertFalse(isRedHue(Brand.BLUE)); assertFalse(isRedHue(Brand.CYAN)); assertFalse(isRedHue(Brand.MINT)); assertFalse(isRedHue(Brand.AMBER))
-        assertTrue(isRedHue(Brand.SPORT_RED))
-        for (c in Brand.CALM_CHOICES) assertFalse(isRedHue(Color(c)))
+    @Test fun brandPaletteHasNoRedAccents() {
+        for (c in listOf(Brand.BLUE, Brand.CYAN, Brand.MINT, Brand.VIOLET, Brand.MAGENTA, Brand.SPORT, Brand.AMBER)) assertFalse(isRedHue(c))
+        assertTrue(isRedHue(Brand.CORAL))
+        for (c in Brand.CALM_CHOICES + Brand.SPORT_CHOICES) assertFalse(isRedHue(Color(c)))
     }
 
     @Test fun defaultAccents() {
         assertFalse(isRedHue(Color(ModeColors.ECO)))
         assertFalse(isRedHue(Color(ModeColors.NORMAL)))
-        assertTrue(isRedHue(Color(ModeColors.SPORT)))
+        assertFalse(isRedHue(Color(ModeColors.SPORT)))
     }
 
     @Test fun oldDefaultsMigrateToPalette() {
-        val old = JSONObject().put("accentEco", 0xFF2FE3A0.toInt()).put("accentNormal", 0xFF4FA3FF.toInt()).put("accentSport", 0xFFFF5A3C.toInt())
+        val old = JSONObject().put("accentEco", 0xFF2FE3A0.toInt()).put("accentNormal", 0xFF4FA3FF.toInt()).put("accentSport", 0xFFE5334B.toInt())
         val s = AppSettings.fromJson(old)
         assertEquals(ModeColors.ECO, s.accentEco)
         assertEquals(ModeColors.NORMAL, s.accentNormal)

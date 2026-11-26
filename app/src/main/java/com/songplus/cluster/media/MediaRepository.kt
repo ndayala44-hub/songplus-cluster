@@ -36,7 +36,9 @@ data class MediaInfo(
     /** Position reported by the player at [baseElapsedMs] (SystemClock.elapsedRealtime). */
     val basePositionMs: Long,
     val baseElapsedMs: Long,
-    val speed: Float
+    val speed: Float,
+    /** Custom action the player offers for toggling shuffle, if any. */
+    val shuffleAction: String? = null
 ) {
     /** Current position, extrapolated from the last report while playing. */
     fun positionNow(): Long {
@@ -68,6 +70,26 @@ class MediaRepository(private val ctx: Context) {
     private var registered = false
     private var artKey: String? = null
     private var artBitmap: Bitmap? = null
+
+    init { current = this }
+
+    /** Transport commands go to the session being shown, so they work with whichever player is active. */
+    fun playPause() = main.post {
+        val c = controller ?: return@post
+        if (_info.value?.playing == true) c.transportControls.pause() else c.transportControls.play()
+    }
+    fun next() { main.post { controller?.transportControls?.skipToNext() } }
+    fun previous() { main.post { controller?.transportControls?.skipToPrevious() } }
+    fun sendCustom(action: String) { main.post { controller?.transportControls?.sendCustomAction(action, null) } }
+
+    private fun labelFor(pkg: String): String = try {
+        val pm = ctx.packageManager
+        pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
+    } catch (e: Exception) { pkg.substringAfterLast('.') }
+
+    companion object {
+        @Volatile var current: MediaRepository? = null
+    }
 
     private val sessionsListener = MediaSessionManager.OnActiveSessionsChangedListener { list -> onSessions(list ?: emptyList()) }
     private val callback = object : MediaController.Callback() {
@@ -153,13 +175,14 @@ class MediaRepository(private val ctx: Context) {
         val rawPos = ps?.position ?: PlaybackState.PLAYBACK_POSITION_UNKNOWN
         _access.value = MediaAccess.ACTIVE
         _info.value = MediaInfo(
-            packageName = c.packageName, appLabel = c.packageName.substringAfterLast('.'),
+            packageName = c.packageName, appLabel = labelFor(c.packageName),
             title = title, artist = artist, album = album, art = art, durationMs = duration,
             playing = playing, buffering = state == PlaybackState.STATE_BUFFERING,
             positionKnown = rawPos != PlaybackState.PLAYBACK_POSITION_UNKNOWN,
             basePositionMs = if (rawPos < 0) 0L else rawPos,
             baseElapsedMs = ps?.lastPositionUpdateTime?.takeIf { it > 0 } ?: SystemClock.elapsedRealtime(),
-            speed = ps?.playbackSpeed?.takeIf { it > 0f } ?: 1f
+            speed = ps?.playbackSpeed?.takeIf { it > 0f } ?: 1f,
+            shuffleAction = ps?.customActions?.firstOrNull { it.action.contains("shuffle", ignoreCase = true) }?.action
         )
     }
 

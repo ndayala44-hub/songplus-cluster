@@ -25,10 +25,10 @@ object ModeColors {
     /** Brand palette: Eco mint, Normal cyan, Sport red. Red is reserved for Sport. */
     const val ECO = 0xFF90FC9C.toInt()
     const val NORMAL = 0xFF00C6FC.toInt()
-    const val SPORT = 0xFFE5334B.toInt()
+    const val SPORT = 0xFFD048F0.toInt()
 
     /** Defaults of earlier versions; saved settings still holding one of these move to the new palette. */
-    val OLD_DEFAULTS = setOf(0xFF2FE3A0.toInt(), 0xFF4FA3FF.toInt(), 0xFFFF5A3C.toInt())
+    val OLD_DEFAULTS = setOf(0xFF2FE3A0.toInt(), 0xFF4FA3FF.toInt(), 0xFFFF5A3C.toInt(), 0xFFE5334B.toInt())
 }
 
 /** Where the reverse-camera picture comes from. */

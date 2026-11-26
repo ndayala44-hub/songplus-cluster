@@ -8,14 +8,19 @@ import kotlin.math.min
 /**
  * The brand palette (taken from the supplied colour reference) and the per-drive-mode colour system.
  *
- * Rule: red is used only in Sport mode. Eco is green, Normal is blue/cyan. Safety alerts in Eco and Normal are
- * amber instead of red, so the red of Sport keeps its meaning.
+ * Eco is green/turquoise, Normal is cyan/electric blue, Sport is magenta/violet. Red (coral) is never a mode accent:
+ * it appears only for low battery, warnings and critical alerts.
  */
 object Brand {
     val BLUE = Color(0xFF2A72B4)
     val CYAN = Color(0xFF00C6FC)
     val MINT = Color(0xFF90FC9C)
-    val SPORT_RED = Color(0xFFE5334B)
+    val VIOLET = Color(0xFF9B6BFF)
+    val MAGENTA = Color(0xFFE23DD8)
+    /** Sport accent: a performance magenta-violet. */
+    val SPORT = Color(0xFFD048F0)
+    /** Coral red: low battery and genuine warnings only. */
+    val CORAL = Color(0xFFFF5A5F)
     val AMBER = Color(0xFFFFB020)
 
     /** Swatches offered for Eco and Normal. */
@@ -25,7 +30,7 @@ object Brand {
 
     /** Swatches offered for Sport. */
     val SPORT_CHOICES = listOf(
-        SPORT_RED, Color(0xFFFF4D4D), Color(0xFFC62840), Color(0xFFFF6B3D), Color(0xFFFF8A1F), Color(0xFFFFFFFF)
+        SPORT, MAGENTA, VIOLET, Color(0xFFFF4FB8), Color(0xFF7A5CFF), Color(0xFFFFFFFF)
     ).map { it.toArgbInt() }
 }
 
@@ -38,20 +43,22 @@ data class ModePalette(
     val accent2: Color,
     val bgTop: Color,
     val bgBottom: Color,
-    /** Safety alert colour: amber in Eco/Normal, red only in Sport. */
+    /** Warning colour (coral red). Used for real warnings and critical alerts only. */
     val alert: Color,
     /** Brake light glow on the road. */
-    val brake: Color
+    val brake: Color,
+    /** Neon road boundary colour. */
+    val edge: Color
 )
 
 fun modePalette(mode: DriveMode, dark: Boolean): ModePalette = if (dark) when (mode) {
-    DriveMode.ECO -> ModePalette(Brand.MINT, Color(0xFF2AA8CC), Color(0xFF0B2622), Color(0xFF040F0D), Brand.AMBER, Color(0xFFD6FFDB))
-    DriveMode.NORMAL -> ModePalette(Brand.CYAN, Brand.BLUE, Color(0xFF0C1F36), Color(0xFF050B15), Brand.AMBER, Color(0xFFBFEFFF))
-    DriveMode.SPORT -> ModePalette(Brand.SPORT_RED, Color(0xFFB3202F), Color(0xFF2A1017), Color(0xFF0D0508), Brand.SPORT_RED, Color(0xFFFF3B3B))
+    DriveMode.ECO -> ModePalette(Brand.MINT, Color(0xFF2AA8CC), Color(0xFF0A3434), Color(0xFF050F14), Brand.CORAL, Color(0xFFFF6B6B), Brand.VIOLET)
+    DriveMode.NORMAL -> ModePalette(Brand.CYAN, Brand.BLUE, Color(0xFF0B3550), Color(0xFF060C1C), Brand.CORAL, Color(0xFFFF6B6B), Brand.MAGENTA)
+    DriveMode.SPORT -> ModePalette(Brand.SPORT, Brand.VIOLET, Color(0xFF2A1148), Color(0xFF0A0614), Brand.CORAL, Color(0xFFFF6B6B), Brand.CYAN)
 } else when (mode) {
-    DriveMode.ECO -> ModePalette(Color(0xFF1E9E5A), Color(0xFF1B8FB0), Color(0xFFEAF8EE), Color(0xFFCDEBD6), Color(0xFFB86E00), Color(0xFF1E9E5A))
-    DriveMode.NORMAL -> ModePalette(Color(0xFF1F6FB0), Color(0xFF0097C8), Color(0xFFEAF3FB), Color(0xFFD0E2F3), Color(0xFFB86E00), Color(0xFF0097C8))
-    DriveMode.SPORT -> ModePalette(Color(0xFFC62840), Color(0xFF8F1B2C), Color(0xFFFBECEE), Color(0xFFEFD0D6), Color(0xFFC62840), Color(0xFFC62840))
+    DriveMode.ECO -> ModePalette(Color(0xFF1E9E5A), Color(0xFF1B8FB0), Color(0xFFEAF8EE), Color(0xFFCDEBD6), Color(0xFFD8323C), Color(0xFFD8323C), Color(0xFF7A57E0))
+    DriveMode.NORMAL -> ModePalette(Color(0xFF1F6FB0), Color(0xFF0097C8), Color(0xFFEAF3FB), Color(0xFFD0E2F3), Color(0xFFD8323C), Color(0xFFD8323C), Color(0xFFC026B8))
+    DriveMode.SPORT -> ModePalette(Color(0xFF9B2FC0), Color(0xFF6B4BD8), Color(0xFFF4EBFB), Color(0xFFE2D2F0), Color(0xFFD8323C), Color(0xFFD8323C), Color(0xFF0097C8))
 }
 
 /** True when [c] reads as red (hue near 0 degrees, clearly saturated). Used by tests to enforce the "red only in Sport" rule. */
