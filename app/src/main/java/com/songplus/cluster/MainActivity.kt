@@ -69,6 +69,10 @@ class MainActivity : AppCompatActivity() {
         val openScreen = if (debuggable) intent.getStringExtra("screen") else null
         val openCat = if (debuggable) intent.getIntExtra("cat", 0) else 0
         if (debuggable && intent.getBooleanExtra("seed_demo", false)) vm.seedDemoTrips()
+        if (debuggable) when (intent.getStringExtra("theme")) {
+            "light" -> vm.updateSettings { it.copy(themeMode = com.songplus.cluster.data.ThemeMode.LIGHT) }
+            "dark" -> vm.updateSettings { it.copy(themeMode = com.songplus.cluster.data.ThemeMode.DARK) }
+        }
         setContent {
             val settings by vm.settings.collectAsState()
             val sysDark = isSystemInDarkTheme()

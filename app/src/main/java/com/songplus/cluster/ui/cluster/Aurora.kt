@@ -55,6 +55,7 @@ private val ORANGE = Color(0xFFFF8A1F)
 private val AMBER = Color(0xFFFFB020)
 private val ICE = Color(0xFF7CC8FF)
 private val WHITE = Color(0xFFF4F6FB)
+private val INK = Color(0xFF161A2B)
 
 private const val ROAD_VP_Y = 250f
 private const val ROAD_BOTTOM_Y = 650f
@@ -140,9 +141,13 @@ internal fun AuroraWidget(c: WCtx) {
         if (!s.mode.available) 1f else when (s.mode.value) { DriveMode.ECO -> 0f; DriveMode.NORMAL -> 1f; DriveMode.SPORT -> 2f },
         lvl, 420
     )
-    val modeColor = if (!s.mode.available) CRIMSON else when (s.mode.value) {
+    val dark = c.colors.dark
+    val fg = if (dark) WHITE else INK
+    val mint = if (dark) MINT else Color(0xFF0E9F6E)
+    val rawMode = if (!s.mode.available) CRIMSON else when (s.mode.value) {
         DriveMode.ECO -> MINT; DriveMode.NORMAL -> CRIMSON; DriveMode.SPORT -> ORANGE
     }
+    val modeColor = if (dark) rawMode else mix(rawMode, Color.Black, 0.22f)
     val acc by animateColorAsState(modeColor, if (lvl == AnimLevel.OFF) tween(0) else tween(650), label = "auroraAccent")
 
     // ---- rolling power history for the little graph ----
@@ -191,20 +196,20 @@ internal fun AuroraWidget(c: WCtx) {
         val pulse = 0.5f + 0.5f * sin(clock.floatValue * 5.2f)
         fun a(col: Color, k: Float = 1f) = col.copy(alpha = (col.alpha * k * fa).coerceIn(0f, 1f))
 
-        drawBackground(u, cx, oy, acc, power, ambient, brake)
+        drawBackground(u, cx, oy, dark, acc, power, ambient, brake)
 
         // ================= centre: road / charging scene =================
         val vp = Offset(X(0f), Y(ROAD_VP_Y))
         val bottomY = Y(ROAD_BOTTOM_Y)
         if (!charging) {
-            drawRoad(u, cx, oy, acc, roadPhase.floatValue, speedFrac, leftOn && blink, rightOn && blink, lightsK, highK, brake, fa, clock.floatValue, s.outsideTempC.available && tempC <= 3f)
+            drawRoad(u, cx, oy, dark, fg, acc, roadPhase.floatValue, speedFrac, leftOn && blink, rightOn && blink, lightsK, highK, brake, fa, clock.floatValue, s.outsideTempC.available && tempC <= 3f)
         } else {
             for (i in 0 until 3) {
                 val tk = ((clock.floatValue * 0.45f) + i / 3f) % 1f
                 val rx = (90f + 360f * tk) * u
                 val ry = rx * 0.26f
                 drawOval(
-                    a(MINT, (1f - tk) * 0.55f), Offset(X(0f) - rx, Y(588f) - ry), Size(rx * 2f, ry * 2f),
+                    a(mint, (1f - tk) * 0.55f), Offset(X(0f) - rx, Y(588f) - ry), Size(rx * 2f, ry * 2f),
                     style = Stroke(width = 2.5f * u)
                 )
             }
@@ -219,19 +224,19 @@ internal fun AuroraWidget(c: WCtx) {
             val critical = s.socPct.available && s.socPct.value < 10f
             var battCol = mix(acc, AMBER, lowK)
             if (critical) battCol = mix(AMBER, Color(0xFFFF3B30), pulse)
-            if (charging) battCol = mix(MINT, WHITE, pulse * 0.25f)
+            if (charging) battCol = mix(mint, fg, pulse * 0.25f)
 
             // reach ring
             drawCircle(a(acc, 0.16f), rIn, lc, style = Stroke(16f * u))
             drawCircle(a(acc, 0.95f), rIn, lc, style = Stroke(2.6f * u))
             t(measurer, "REACH", lc.x, lc.y - 50f * u, 14f * u, a(acc), FontWeight.Medium, 0, 2f * u)
-            t(measurer, rangeTxt, lc.x - 8f * u, lc.y + 4f * u, 58f * u, a(WHITE), FontWeight.Light)
-            t(measurer, Units.distanceLabel(du), lc.x, lc.y + 52f * u, 17f * u, a(WHITE, 0.75f), FontWeight.Normal)
+            t(measurer, rangeTxt, lc.x - 8f * u, lc.y + 4f * u, 58f * u, a(fg), FontWeight.Light)
+            t(measurer, Units.distanceLabel(du), lc.x, lc.y + 52f * u, 17f * u, a(fg, 0.75f), FontWeight.Normal)
 
             // outer arc: track, dashed fill, glow
             val start = 100f
             val full = 170f
-            drawArc(a(WHITE, 0.20f), start, full, false, Offset(lc.x - rOut, lc.y - rOut), Size(rOut * 2, rOut * 2), style = Stroke(2.2f * u, cap = StrokeCap.Round))
+            drawArc(a(fg, 0.20f), start, full, false, Offset(lc.x - rOut, lc.y - rOut), Size(rOut * 2, rOut * 2), style = Stroke(2.2f * u, cap = StrokeCap.Round))
             val fill = full * soc * sweepK
             if (fill > 0.5f) {
                 drawArc(a(battCol, 0.14f), start, fill, false, Offset(lc.x - rOut, lc.y - rOut), Size(rOut * 2, rOut * 2), style = Stroke(26f * u))
@@ -245,7 +250,7 @@ internal fun AuroraWidget(c: WCtx) {
                     // light travelling up the arc while charging
                     val head = start + fill * ((clock.floatValue * 0.6f) % 1f)
                     val p = pointOn(lc, rOut, head)
-                    drawCircle(Brush.radialGradient(listOf(a(WHITE, 0.95f), Color.Transparent), p, 24f * u), 24f * u, p)
+                    drawCircle(Brush.radialGradient(listOf(a(fg, 0.95f), Color.Transparent), p, 24f * u), 24f * u, p)
                 }
                 val end = pointOn(lc, rOut, start + fill)
                 drawCircle(a(battCol), 4.5f * u, end)
@@ -253,22 +258,22 @@ internal fun AuroraWidget(c: WCtx) {
             // scale marks and labels
             for (i in 0..4) {
                 val p = pointOn(lc, rOut + 22f * u, start + full * i / 4f)
-                drawCircle(a(WHITE, if (i == 0 || i == 4) 0.9f else 0.45f), 2.4f * u, p)
+                drawCircle(a(fg, if (i == 0 || i == 4) 0.9f else 0.45f), 2.4f * u, p)
             }
             val tp = pointOn(lc, rOut + 44f * u, 262f)
-            t(measurer, "100", tp.x + 12f * u, tp.y + 8f * u, 13f * u, a(WHITE, 0.8f))
+            t(measurer, "100", tp.x + 12f * u, tp.y + 8f * u, 13f * u, a(fg, 0.8f))
             val bp = pointOn(lc, rOut + 40f * u, 104f)
-            t(measurer, "0", bp.x - 4f * u, bp.y + 4f * u, 13f * u, a(WHITE, 0.8f))
+            t(measurer, "0", bp.x - 4f * u, bp.y + 4f * u, 13f * u, a(fg, 0.8f))
             // lightning bolt (pulses while charging)
             val bolt = pointOn(lc, rOut + 20f * u, 268f)
-            drawBolt(bolt.x - 4f * u, bolt.y - 30f * u, 20f * u, a(if (charging) MINT else WHITE, if (charging) 0.6f + 0.4f * pulse else 0.85f))
+            drawBolt(bolt.x - 4f * u, bolt.y - 30f * u, 20f * u, a(if (charging) mint else fg, if (charging) 0.6f + 0.4f * pulse else 0.85f))
             // percent
             val px = lc.x - (rIn + rOut) / 2f - 2f * u
-            t(measurer, socTxt, px - 4f * u, lc.y - 8f * u, 32f * u, a(if (critical || lowK > 0.5f) battCol else WHITE), FontWeight.Normal)
-            t(measurer, "%", px + 24f * u, lc.y - 14f * u, 15f * u, a(WHITE, 0.8f))
-            t(measurer, "BATTERY", px, lc.y + 16f * u, 10.5f * u, a(WHITE, 0.6f), FontWeight.Medium, 0, 1f * u)
+            t(measurer, socTxt, px - 4f * u, lc.y - 8f * u, 32f * u, a(if (critical || lowK > 0.5f) battCol else fg), FontWeight.Normal)
+            t(measurer, "%", px + 24f * u, lc.y - 14f * u, 15f * u, a(fg, 0.8f))
+            t(measurer, "BATTERY", px, lc.y + 16f * u, 10.5f * u, a(fg, 0.6f), FontWeight.Medium, 0, 1f * u)
             if (charging) {
-                t(measurer, String.format(Locale.US, "%.1f kW", chargeKw), lc.x, lc.y + 86f * u, 18f * u, a(MINT), FontWeight.Medium)
+                t(measurer, String.format(Locale.US, "%.1f kW", chargeKw), lc.x, lc.y + 86f * u, 18f * u, a(mint), FontWeight.Medium)
             }
         }
 
@@ -288,18 +293,18 @@ internal fun AuroraWidget(c: WCtx) {
             // outer speed arc: top (270 deg) clockwise down the right side to 80 deg
             val start = 270f
             val full = 170f
-            drawArc(a(WHITE, 0.30f), start, full, false, Offset(rc.x - rOut, rc.y - rOut), Size(rOut * 2, rOut * 2), style = Stroke(2.2f * u, cap = StrokeCap.Round))
+            drawArc(a(fg, 0.30f), start, full, false, Offset(rc.x - rOut, rc.y - rOut), Size(rOut * 2, rOut * 2), style = Stroke(2.2f * u, cap = StrokeCap.Round))
             val sw = full * speedFrac * sweepK
             if (sw > 0.3f) {
-                drawArc(a(WHITE, 0.10f), start, sw, false, Offset(rc.x - rOut, rc.y - rOut), Size(rOut * 2, rOut * 2), style = Stroke(22f * u))
-                drawArc(a(WHITE, 0.95f), start, sw, false, Offset(rc.x - rOut, rc.y - rOut), Size(rOut * 2, rOut * 2), style = Stroke(4f * u, cap = StrokeCap.Round))
+                drawArc(a(fg, 0.10f), start, sw, false, Offset(rc.x - rOut, rc.y - rOut), Size(rOut * 2, rOut * 2), style = Stroke(22f * u))
+                drawArc(a(fg, 0.95f), start, sw, false, Offset(rc.x - rOut, rc.y - rOut), Size(rOut * 2, rOut * 2), style = Stroke(4f * u, cap = StrokeCap.Round))
             }
             val dot = pointOn(rc, rOut, start + sw)
-            drawCircle(Brush.radialGradient(listOf(a(WHITE, 0.7f), Color.Transparent), dot, 20f * u), 20f * u, dot)
-            drawCircle(a(WHITE), 6f * u, dot)
+            drawCircle(Brush.radialGradient(listOf(a(fg, 0.7f), Color.Transparent), dot, 20f * u), 20f * u, dot)
+            drawCircle(a(fg), 6f * u, dot)
             for (i in 0..8) {
                 val p = pointOn(rc, rOut + 22f * u, start + full * i / 8f)
-                drawCircle(a(WHITE, if (i % 2 == 0) 0.7f else 0.35f), if (i % 2 == 0) 2.4f * u else 1.6f * u, p)
+                drawCircle(a(fg, if (i % 2 == 0) 0.7f else 0.35f), if (i % 2 == 0) 2.4f * u else 1.6f * u, p)
             }
 
             // power arcs hugging the inner ring: boost above, charge below
@@ -312,31 +317,31 @@ internal fun AuroraWidget(c: WCtx) {
                 drawArc(a(acc), -pe * boost, pe * boost, false, Offset(rc.x - rp, rc.y - rp), Size(rp * 2, rp * 2), style = Stroke(5f * u, cap = StrokeCap.Butt))
             }
             if (regen > 0.01f) {
-                drawArc(a(MINT, 0.22f), 0f, pe * regen, false, Offset(rc.x - rp, rc.y - rp), Size(rp * 2, rp * 2), style = Stroke(18f * u))
-                drawArc(a(MINT), 0f, pe * regen, false, Offset(rc.x - rp, rc.y - rp), Size(rp * 2, rp * 2), style = Stroke(5f * u))
+                drawArc(a(mint, 0.22f), 0f, pe * regen, false, Offset(rc.x - rp, rc.y - rp), Size(rp * 2, rp * 2), style = Stroke(18f * u))
+                drawArc(a(mint), 0f, pe * regen, false, Offset(rc.x - rp, rc.y - rp), Size(rp * 2, rp * 2), style = Stroke(5f * u))
             }
             val bl = pointOn(rc, rIn + 46f * u, -52f)
             t(measurer, "BOOST", bl.x, bl.y, 10.5f * u, a(acc), FontWeight.Medium, 0, 1.2f * u)
             val cl = pointOn(rc, rIn + 46f * u, 52f)
-            t(measurer, "CHARGE", cl.x, cl.y, 10.5f * u, a(WHITE, 0.75f), FontWeight.Medium, 0, 1.2f * u)
-            drawCircle(a(MINT), 3f * u, Offset(cl.x + 34f * u, cl.y))
+            t(measurer, "CHARGE", cl.x, cl.y, 10.5f * u, a(fg, 0.75f), FontWeight.Medium, 0, 1.2f * u)
+            drawCircle(a(mint), 3f * u, Offset(cl.x + 34f * u, cl.y))
 
             // readout: P when parked, otherwise speed
             if (!s.speedKmh.available) {
-                t(measurer, "--", rc.x, rc.y - 6f * u, 90f * u, a(WHITE), FontWeight.Light)
+                t(measurer, "--", rc.x, rc.y - 6f * u, 90f * u, a(fg), FontWeight.Light)
             } else if (parked) {
-                t(measurer, "P", rc.x, rc.y - 6f * u, 96f * u, a(WHITE), FontWeight.Light)
+                t(measurer, "P", rc.x, rc.y - 6f * u, 96f * u, a(fg), FontWeight.Light)
             } else {
-                t(measurer, shownSpeed.toString(), rc.x, rc.y - 6f * u, 92f * u, a(WHITE), FontWeight.Light)
+                t(measurer, shownSpeed.toString(), rc.x, rc.y - 6f * u, 92f * u, a(fg), FontWeight.Light)
             }
-            t(measurer, unitLabel, rc.x, rc.y + 58f * u, 17f * u, a(WHITE, 0.65f), FontWeight.Normal)
+            t(measurer, unitLabel, rc.x, rc.y + 58f * u, 17f * u, a(fg, 0.65f), FontWeight.Normal)
 
             // gear selector
             val letters = listOf("P", "R", "N", "D")
             for ((i, g) in letters.withIndex()) {
                 val gx = rc.x + (i - 1.5f) * 36f * u
                 val on = gearSel != null && gearSel.label == g
-                t(measurer, g, gx, rc.y + 152f * u, if (on) 24f * u else 17f * u, a(if (on) WHITE else WHITE, if (on) 1f else 0.35f), if (on) FontWeight.Bold else FontWeight.Normal)
+                t(measurer, g, gx, rc.y + 152f * u, if (on) 24f * u else 17f * u, a(if (on) fg else fg, if (on) 1f else 0.35f), if (on) FontWeight.Bold else FontWeight.Normal)
                 if (on) drawLine(a(acc), Offset(gx - 9f * u, rc.y + 168f * u), Offset(gx + 9f * u, rc.y + 168f * u), 3f * u, StrokeCap.Round)
             }
         }
@@ -347,12 +352,12 @@ internal fun AuroraWidget(c: WCtx) {
                 moveTo(X(-470f), Y(96f)); quadraticBezierTo(X(-390f), Y(78f), X(-310f), Y(78f))
                 lineTo(X(310f), Y(78f)); quadraticBezierTo(X(390f), Y(78f), X(470f), Y(96f))
             }
-            drawPath(line, a(WHITE, 0.30f), style = Stroke(1.6f * u))
+            drawPath(line, a(fg, 0.30f), style = Stroke(1.6f * u))
             val names = listOf("ECO", "NORMAL", "SPORT")
             val xs = listOf(-130f, 0f, 130f)
             for (i in 0..2) {
                 val on = abs(modeIdx - i) < 0.5f
-                t(measurer, names[i], X(xs[i]), Y(54f), 15f * u, a(WHITE, if (on) 1f else 0.42f), if (on) FontWeight.Bold else FontWeight.Medium, 0, 2.2f * u)
+                t(measurer, names[i], X(xs[i]), Y(54f), 15f * u, a(fg, if (on) 1f else 0.42f), if (on) FontWeight.Bold else FontWeight.Medium, 0, 2.2f * u)
             }
             val ix = X(-130f + 130f * modeIdx)
             drawLine(a(acc, 0.28f), Offset(ix - 42f * u, Y(78f)), Offset(ix + 42f * u, Y(78f)), 10f * u, StrokeCap.Round)
@@ -363,7 +368,7 @@ internal fun AuroraWidget(c: WCtx) {
         run {
             val x0 = X(-355f); val x1 = X(-150f); val y0 = Y(300f)
             val h = 46f * u
-            drawLine(a(WHITE, 0.10f), Offset(x0, y0), Offset(x1, y0), 1f * u)
+            drawLine(a(fg, 0.10f), Offset(x0, y0), Offset(x1, y0), 1f * u)
             if (hist.size > 2) {
                 val path = Path()
                 for (i in hist.indices) {
@@ -373,19 +378,19 @@ internal fun AuroraWidget(c: WCtx) {
                 }
                 drawPath(path, a(acc, 0.9f), style = Stroke(1.8f * u, cap = StrokeCap.Round))
                 val last = hist.last().coerceIn(-1f, 1f)
-                drawCircle(a(if (last < 0f) MINT else acc), 3.5f * u, Offset(x0 + (x1 - x0) * (hist.size - 1) / 55f, y0 - last * h * 0.9f))
+                drawCircle(a(if (last < 0f) mint else acc), 3.5f * u, Offset(x0 + (x1 - x0) * (hist.size - 1) / 55f, y0 - last * h * 0.9f))
             }
-            t(measurer, "AVG", (x0 + x1) / 2f, Y(366f), 11f * u, a(WHITE, 0.55f), FontWeight.Medium, 0, 1.5f * u)
-            t(measurer, "$avgWh $avgUnit", (x0 + x1) / 2f, Y(388f), 17f * u, a(WHITE, 0.92f), FontWeight.Medium)
+            t(measurer, "AVG", (x0 + x1) / 2f, Y(366f), 11f * u, a(fg, 0.55f), FontWeight.Medium, 0, 1.5f * u)
+            t(measurer, "$avgWh $avgUnit", (x0 + x1) / 2f, Y(388f), 17f * u, a(fg, 0.92f), FontWeight.Medium)
         }
 
         // ================= centre-right: trip / odometer =================
         run {
             val xc = X(255f)
-            t(measurer, "TRIP", xc, Y(300f), 11f * u, a(WHITE, 0.55f), FontWeight.Medium, 0, 1.5f * u)
-            t(measurer, "$tripTxt ${Units.distanceLabel(du)}", xc, Y(324f), 19f * u, a(WHITE, 0.95f), FontWeight.Medium)
-            t(measurer, "ODO", xc, Y(366f), 11f * u, a(WHITE, 0.55f), FontWeight.Medium, 0, 1.5f * u)
-            t(measurer, "$odoTxt ${Units.distanceLabel(du)}", xc, Y(390f), 19f * u, a(WHITE, 0.95f), FontWeight.Medium)
+            t(measurer, "TRIP", xc, Y(300f), 11f * u, a(fg, 0.55f), FontWeight.Medium, 0, 1.5f * u)
+            t(measurer, "$tripTxt ${Units.distanceLabel(du)}", xc, Y(324f), 19f * u, a(fg, 0.95f), FontWeight.Medium)
+            t(measurer, "ODO", xc, Y(366f), 11f * u, a(fg, 0.55f), FontWeight.Medium, 0, 1.5f * u)
+            t(measurer, "$odoTxt ${Units.distanceLabel(du)}", xc, Y(390f), 19f * u, a(fg, 0.95f), FontWeight.Medium)
         }
 
         // ================= bottom: date, time, temperature =================
@@ -394,11 +399,11 @@ internal fun AuroraWidget(c: WCtx) {
                 moveTo(X(-300f), Y(668f)); lineTo(X(300f), Y(668f))
             }
             drawPath(line, Brush.horizontalGradient(listOf(Color.Transparent, a(acc, 0.9f), Color.Transparent), X(-300f), X(300f)), style = Stroke(2f * u))
-            t(measurer, dateTxt, X(-170f), Y(696f), 17f * u, a(WHITE, 0.9f))
-            t(measurer, timeTxt, X(0f), Y(696f), 22f * u, a(WHITE), FontWeight.Medium)
+            t(measurer, dateTxt, X(-170f), Y(696f), 17f * u, a(fg, 0.9f))
+            t(measurer, timeTxt, X(0f), Y(696f), 22f * u, a(fg), FontWeight.Medium)
             val frost = tempOk && tempC <= 3f
             val hot = tempOk && tempC >= 35f
-            val tcol = if (frost) ICE else if (hot) AMBER else WHITE
+            val tcol = if (frost) ICE else if (hot) AMBER else fg
             t(measurer, tempTxt, X(150f), Y(696f), 17f * u, a(tcol, 0.95f))
             if (frost) t(measurer, "FROST", X(222f), Y(696f), 12f * u, a(ICE), FontWeight.Bold, 0, 1.5f * u)
             if (hot) t(measurer, "HOT", X(215f), Y(696f), 12f * u, a(AMBER), FontWeight.Bold, 0, 1.5f * u)
@@ -445,19 +450,19 @@ private fun DrawScope.drawBolt(x: Float, y: Float, s: Float, color: Color) {
     drawPath(p, color, style = Fill)
 }
 
-private fun DrawScope.drawBackground(u: Float, cx: Float, oy: Float, acc: Color, power: Float, ambient: Float, brake: Float) {
-    val top = mix(Color(0xFF1E2038), Color(0xFF0E0F1D), ambient)
-    val bot = mix(Color(0xFF12131F), Color(0xFF06060D), ambient)
+private fun DrawScope.drawBackground(u: Float, cx: Float, oy: Float, dark: Boolean, acc: Color, power: Float, ambient: Float, brake: Float) {
+    val top = if (dark) mix(Color(0xFF1E2038), Color(0xFF0E0F1D), ambient) else mix(Color(0xFFF1F3FA), Color(0xFFDDE1EE), ambient * 0.6f)
+    val bot = if (dark) mix(Color(0xFF12131F), Color(0xFF06060D), ambient) else mix(Color(0xFFE2E6F2), Color(0xFFC9CEE0), ambient * 0.6f)
     drawRect(Brush.verticalGradient(listOf(top, bot)))
     // vignette
     drawRect(
         Brush.radialGradient(
-            listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f)),
+            listOf(Color.Transparent, (if (dark) Color.Black else Color(0xFF3A4060)).copy(alpha = if (dark) 0.55f else 0.16f)),
             Offset(cx, oy + 360f * u), 1250f * u
         )
     )
     // accent glow under the car reacts to power; red flash when braking
-    val k = 0.10f + 0.22f * abs(power)
+    val k = (0.10f + 0.22f * abs(power)) * (if (dark) 1f else 0.7f)
     drawCircle(
         Brush.radialGradient(listOf(acc.copy(alpha = k), Color.Transparent), Offset(cx, oy + 600f * u), 430f * u),
         430f * u, Offset(cx, oy + 600f * u)
@@ -469,24 +474,24 @@ private fun DrawScope.drawBackground(u: Float, cx: Float, oy: Float, acc: Color,
         )
     }
     drawRoundRect(
-        Color.White.copy(alpha = 0.06f), Offset(2f * u, oy + 2f * u), Size(size.width - 4f * u, 720f * u - 4f * u),
+        (if (dark) Color.White else Color.Black).copy(alpha = if (dark) 0.06f else 0.10f), Offset(2f * u, oy + 2f * u), Size(size.width - 4f * u, 720f * u - 4f * u),
         androidx.compose.ui.geometry.CornerRadius(34f * u, 34f * u), style = Stroke(1.5f * u)
     )
 }
 
 private fun DrawScope.drawRoad(
-    u: Float, cx: Float, oy: Float, acc: Color, phase: Float, speedFrac: Float,
+    u: Float, cx: Float, oy: Float, dark: Boolean, fg: Color, acc: Color, phase: Float, speedFrac: Float,
     leftSig: Boolean, rightSig: Boolean, lights: Float, high: Float, brake: Float, fade: Float, clock: Float, cold: Boolean
 ) {
     val vp = Offset(cx, oy + ROAD_VP_Y * u)
     val by = oy + ROAD_BOTTOM_Y * u
-    val tint = if (cold) ICE else Color.White
+    val tint = if (cold) (if (dark) ICE else Color(0xFF2F7FC0)) else fg
     // road surface
     val road = Path().apply {
         moveTo(vp.x - 6f * u, vp.y); lineTo(vp.x + 6f * u, vp.y)
         lineTo(cx + ROAD_HALF * u, by); lineTo(cx - ROAD_HALF * u, by); close()
     }
-    drawPath(road, Brush.verticalGradient(listOf(Color.Transparent, acc.copy(alpha = 0.10f * fade)), vp.y, by))
+    drawPath(road, Brush.verticalGradient(listOf(Color.Transparent, acc.copy(alpha = (if (dark) 0.10f else 0.13f) * fade)), vp.y, by))
     // headlight cone
     if (lights > 0.01f) {
         val spread = (ROAD_HALF * (0.55f + 0.35f * high)) * u
@@ -494,8 +499,8 @@ private fun DrawScope.drawRoad(
             moveTo(vp.x - 4f * u, vp.y + 20f * u); lineTo(vp.x + 4f * u, vp.y + 20f * u)
             lineTo(cx + spread, by); lineTo(cx - spread, by); close()
         }
-        val lc = mix(Color.White, Color(0xFFBFD8FF), high)
-        drawPath(cone, Brush.verticalGradient(listOf(Color.Transparent, lc.copy(alpha = (0.07f + 0.08f * high) * lights * fade)), vp.y, by))
+        val lc = if (dark) mix(Color.White, Color(0xFFBFD8FF), high) else mix(Color(0xFFFFE9A8), Color(0xFF8FB4FF), high)
+        drawPath(cone, Brush.verticalGradient(listOf(Color.Transparent, lc.copy(alpha = (if (dark) 0.07f + 0.08f * high else 0.20f + 0.10f * high) * lights * fade)), vp.y, by))
     }
     // road edges (turn signal tints the edge on that side)
     val edgeL = if (leftSig) MINT else tint

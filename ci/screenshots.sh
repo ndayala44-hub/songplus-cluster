@@ -22,6 +22,15 @@ sleep 11; adb exec-out screencap -p > shots/01c_aurora_signal_right.png
 sleep 14; adb exec-out screencap -p > shots/01d_aurora_cruising.png
 sleep 10; adb exec-out screencap -p > shots/01e_aurora_braking.png
 sleep 6;  adb exec-out screencap -p > shots/01f_aurora_parked.png
+# light theme cluster (debug-only theme extra)
+adb shell am force-stop com.songplus.cluster
+adb shell am start -n com.songplus.cluster/.MainActivity --es screen cluster --es theme light
+sleep 12; adb exec-out screencap -p > shots/08a_aurora_light_pulling_away.png
+sleep 14; adb exec-out screencap -p > shots/08b_aurora_light_cruising.png
+sleep 11; adb exec-out screencap -p > shots/08c_aurora_light_braking.png
+adb shell am force-stop com.songplus.cluster
+adb shell am start -n com.songplus.cluster/.MainActivity --es screen cluster --es theme dark
+sleep 3
 open 02_trips --es screen trips --ez seed_demo true
 open 03_designer --es screen designer
 open 04_settings_general --es screen settings --ei cat 0
