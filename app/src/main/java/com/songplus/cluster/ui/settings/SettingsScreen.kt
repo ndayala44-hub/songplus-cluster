@@ -290,7 +290,6 @@ private fun Vehicle(vm: ClusterViewModel) {
 }
 
 @Composable
-@Composable
 private fun BydPermissionProbeSection(vm: ClusterViewModel) {
     var report by remember { mutableStateOf<com.songplus.cluster.vehicle.PermissionProbe.Report?>(null) }
     val permLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
