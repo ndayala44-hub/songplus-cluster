@@ -15,7 +15,12 @@ object Obd2Parse {
 
     /** Data bytes after the "mode pid" echo (e.g. 41 0D xx), or null if the echo is absent / there are no data bytes. */
     fun dataBytes(reply: String, mode: String, pid: String): List<Int>? {
-        val tokens = reply.trim().split(Regex("\\s+")).filter { it.matches(Regex("[0-9A-Fa-f]{2}")) }
+        val tokens = ArrayList<String>()
+        for (raw in reply.trim().split(Regex("\\s+"))) {
+            if (!raw.matches(Regex("[0-9A-Fa-f]+"))) continue
+            if (raw.length % 2 != 0) continue                 // odd-length (e.g. a 3-nibble header) is not byte-aligned
+            var i = 0; while (i < raw.length) { tokens.add(raw.substring(i, i + 2)); i += 2 }  // split contiguous hex into bytes
+        }
         var idx = -1
         for (i in 0 until tokens.size - 1) {
             if (tokens[i].equals(mode, true) && tokens[i + 1].equals(pid, true)) { idx = i; break }
