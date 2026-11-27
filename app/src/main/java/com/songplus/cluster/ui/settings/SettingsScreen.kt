@@ -219,6 +219,8 @@ private fun Vehicle(vm: ClusterViewModel) {
 
     BydPermissionProbeSection(vm)
 
+    BydComponentScanSection(vm)
+
     SectionTitle(stringResource(R.string.data_source))
     ChoiceRow(stringResource(R.string.data_mode), DataMode.values().toList(), s.dataMode,
         { stringResource(when (it) { DataMode.AUTO -> R.string.dm_auto; DataMode.SIMULATION -> R.string.dm_sim; DataMode.BYD_ONLY -> R.string.dm_byd; DataMode.OBD2 -> R.string.dm_obd2 }) },
@@ -328,6 +330,33 @@ private fun BydPermissionProbeSection(vm: ClusterViewModel) {
             Button(onClick = { permLauncher.launch(r.requestable.toTypedArray()) }, modifier = Modifier.padding(top = 8.dp)) {
                 Text(stringResource(R.string.probe_request_grantable))
             }
+        }
+    }
+}
+
+@Composable
+private fun BydComponentScanSection(vm: ClusterViewModel) {
+    var report by remember { mutableStateOf<com.songplus.cluster.vehicle.BydComponentScan.Report?>(null) }
+    SectionTitle(stringResource(R.string.scan_title))
+    Text(stringResource(R.string.scan_intro), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    OutlinedButton(onClick = { report = vm.scanBydComponents() }, modifier = Modifier.padding(top = 8.dp)) {
+        Text(stringResource(R.string.scan_run))
+    }
+    report?.let { r ->
+        Text(r.note, style = MaterialTheme.typography.bodyMedium,
+            color = if (r.candidates > 0) Color(0xFF90FC9C) else MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(vertical = 8.dp))
+        Text(stringResource(R.string.scan_counts, r.packages, r.comps.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // Show the clean candidates first (capped), then note the rest exist.
+        val shown = r.comps.filter { it.cleanCandidate }.take(40)
+        for (c in shown) {
+            Column(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                KeyValue("${c.kind.name.lowercase()} · ${c.key}", stringResource(R.string.scan_candidate), Color(0xFF90FC9C))
+                Text("${c.pkg}\nguard: ${c.permission ?: "none"} (${c.protection})", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (r.candidates == 0 && r.comps.isNotEmpty()) {
+            Text(stringResource(R.string.scan_none_clean), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
         }
     }
 }

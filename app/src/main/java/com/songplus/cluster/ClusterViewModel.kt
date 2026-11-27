@@ -55,6 +55,9 @@ class ClusterViewModel(app: Application) : AndroidViewModel(app) {
     /** Read-only probe of the declared BYDAUTO permissions (protection level + grant state). Never changes a grant. */
     fun probeBydPermissions() = com.songplus.cluster.vehicle.PermissionProbe.run(getApplication())
 
+    /** Read-only scan of BYD packages for an exported, non-signature data route. */
+    fun scanBydComponents() = com.songplus.cluster.vehicle.BydComponentScan.run(getApplication())
+
     val trips: StateFlow<List<TripRecord>> = c.trips.trips
     val tripActive: StateFlow<Boolean> = c.vehicle.tripActive
 

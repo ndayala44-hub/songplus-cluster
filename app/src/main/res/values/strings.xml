@@ -332,4 +332,10 @@
     <string name="obd2_note">Speed uses the standard PID and should work on most cars. Battery percentage and range use proprietary BYD codes that are not verified for this model, so they stay "--" on OBD2. Values are never invented.</string>
     <string name="diag_summary">Readable %1$d · signature-restricted %2$d · denied %3$d · of %4$d BYD data devices</string>
     <string name="diag_summary_sig">SIGNATURE RESTRICTED means the data getter needs a signature-level permission a normal app cannot be granted. See docs/PLATFORM_SIGNING.md or use OBD2.</string>
+    <string name="scan_title">BYD component scan</string>
+    <string name="scan_intro">Looks for a legitimate data route: an exported BYD provider, service or broadcast that does not require a signature permission. Read-only — it just lists packages, calls nothing.</string>
+    <string name="scan_run">Scan BYD components</string>
+    <string name="scan_counts">%1$d BYD package(s), %2$d component(s) scanned</string>
+    <string name="scan_candidate">POSSIBLE CLEAN ROUTE</string>
+    <string name="scan_none_clean">No exported component without a signature guard was found. No clean IPC route on this unit.</string>
 </resources>
