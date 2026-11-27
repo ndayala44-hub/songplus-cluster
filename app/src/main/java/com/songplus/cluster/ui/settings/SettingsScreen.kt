@@ -341,8 +341,15 @@ private fun BydPermissionProbeSection(vm: ClusterViewModel) {
 @Composable
 private fun BydComponentScanSection(vm: ClusterViewModel) {
     var report by remember { mutableStateOf<com.songplus.cluster.vehicle.BydComponentScan.Report?>(null) }
+    val s by vm.settings.collectAsState()
     SectionTitle(stringResource(R.string.scan_title))
     Text(stringResource(R.string.scan_intro), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    if (s.providerAuthority.isNotBlank()) {
+        KeyValue(stringResource(R.string.scan_active_provider), s.providerAuthority, Color(0xFF90FC9C))
+        Text("speed=${s.providerSpeedCol.ifBlank { "—" }} · soc=${s.providerBatteryCol.ifBlank { "—" }} · range=${s.providerRangeCol.ifBlank { "—" }} · gear=${s.providerGearCol.ifBlank { "—" }}",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        OutlinedButton(onClick = { vm.clearProviderSource() }, modifier = Modifier.padding(top = 4.dp)) { Text(stringResource(R.string.scan_clear_provider)) }
+    }
     OutlinedButton(onClick = { report = vm.scanBydComponents() }, modifier = Modifier.padding(top = 8.dp)) {
         Text(stringResource(R.string.scan_run))
     }
@@ -358,6 +365,11 @@ private fun BydComponentScanSection(vm: ClusterViewModel) {
                 KeyValue("${c.kind.name.lowercase()} · ${c.key}", stringResource(R.string.scan_candidate), Color(0xFF90FC9C))
                 Text("${c.pkg}\nguard: ${c.permission ?: "none"} (${c.protection})" + (c.probeResult?.let { "\nread probe: $it" } ?: ""),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (c.kind == com.songplus.cluster.vehicle.BydComponentScan.Kind.PROVIDER && c.columns.isNotEmpty()) {
+                    OutlinedButton(onClick = { vm.useProviderSource(c.key, c.columns) }, modifier = Modifier.padding(top = 4.dp)) {
+                        Text(stringResource(R.string.scan_use_provider))
+                    }
+                }
             }
         }
         if (r.candidates == 0 && r.comps.isNotEmpty()) {

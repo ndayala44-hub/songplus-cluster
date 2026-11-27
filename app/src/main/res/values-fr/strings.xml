@@ -340,4 +340,7 @@
     <string name="signing_cert">Certificat de signature</string>
     <string name="signing_sha">SHA-256 :</string>
     <string name="signing_hint">Une version debug affiche CN=Android Debug. Une version signée plateforme affiche le certificat plateforme — c\'est ainsi qu\'on confirme l\'installation de l\'APK signé.</string>
+    <string name="scan_active_provider">Fournisseur de données actif</string>
+    <string name="scan_use_provider">Utiliser comme source</string>
+    <string name="scan_clear_provider">Effacer le fournisseur</string>
 </resources>

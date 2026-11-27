@@ -114,10 +114,9 @@ class Obd2Source(private val ctx: Context) {
             _state.value = State.CONNECTED
             _detail.value = "Connected"
             while (running) {
-                val speed = query(outs, ins, "010D")?.let { parse(it, "41", "0D") }?.let { if (it.isNotEmpty()) it[0] else null }
-                val rpmBytes = query(outs, ins, "010C")?.let { parse(it, "41", "0C") }
-                val rpm = if (rpmBytes != null && rpmBytes.size >= 2) (rpmBytes[0] * 256 + rpmBytes[1]) / 4 else null
-                val cool = query(outs, ins, "0105")?.let { parse(it, "41", "05") }?.let { if (it.isNotEmpty()) it[0] - 40 else null }
+                val speed = query(outs, ins, "010D")?.let { Obd2Parse.speedKmh(it) }
+                val rpm = query(outs, ins, "010C")?.let { Obd2Parse.rpm(it) }
+                val cool = query(outs, ins, "0105")?.let { Obd2Parse.coolantC(it) }
 
                 val cur = _readings.value
                 _readings.value = Readings(
@@ -177,19 +176,4 @@ class Obd2Source(private val ctx: Context) {
         return if (sb.isNotEmpty()) sb.toString() else null
     }
 
-    /** Parse "41 0D 3A" style replies into the data bytes after the mode/pid echo. */
-    private fun parse(reply: String, mode: String, pid: String): List<Int>? {
-        val tokens = reply.trim().split(Regex("\\s+")).filter { it.matches(Regex("[0-9A-Fa-f]{2}")) }
-        val idx = indexOfPair(tokens, mode, pid) ?: return null
-        val data = tokens.drop(idx + 2)
-        if (data.isEmpty()) return null
-        return data.mapNotNull { it.toIntOrNull(16) }
-    }
-
-    private fun indexOfPair(tokens: List<String>, a: String, b: String): Int? {
-        for (i in 0 until tokens.size - 1) {
-            if (tokens[i].equals(a, true) && tokens[i + 1].equals(b, true)) return i
-        }
-        return null
-    }
 }

@@ -58,6 +58,17 @@ class ClusterViewModel(app: Application) : AndroidViewModel(app) {
     /** Read-only scan of BYD packages for an exported, non-signature data route. */
     fun scanBydComponents() = com.songplus.cluster.vehicle.BydComponentScan.run(getApplication())
 
+    /** Adopt a scanned provider as a read-only data source: auto-map its columns and save. */
+    fun useProviderSource(authority: String, columns: List<String>) {
+        val m = com.songplus.cluster.vehicle.ProviderVehicleSource.autoMap(authority, columns)
+        updateSettings { it.copy(
+            providerAuthority = m.authority,
+            providerSpeedCol = m.speed ?: "", providerBatteryCol = m.battery ?: "",
+            providerRangeCol = m.range ?: "", providerGearCol = m.gear ?: ""
+        ) }
+    }
+    fun clearProviderSource() = updateSettings { it.copy(providerAuthority = "", providerSpeedCol = "", providerBatteryCol = "", providerRangeCol = "", providerGearCol = "") }
+
     /** The APK's signing certificate (subject DN + SHA-256), so a platform-signed install can be told from a debug one. */
     fun signingInfo(): Pair<String, String> = com.songplus.cluster.vehicle.SigningInfo.of(getApplication())
 

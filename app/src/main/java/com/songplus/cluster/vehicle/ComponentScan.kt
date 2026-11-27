@@ -31,7 +31,9 @@ object BydComponentScan {
         /** True when exported and the guard permission is absent or NOT signature-level — a candidate clean route. */
         val cleanCandidate: Boolean,
         /** Read-only probe result for a candidate provider (rows/columns or the exact error); null if not probed. */
-        val probeResult: String? = null
+        val probeResult: String? = null,
+        /** Column names discovered by the provider probe, for auto-mapping to metrics. */
+        val columns: List<String> = emptyList()
     )
 
     data class Report(val comps: List<Comp>, val candidates: Int, val packages: Int, val note: String)
@@ -68,22 +70,23 @@ object BydComponentScan {
         val clean = exported && (perm == null || !prot.startsWith("signature"))
         // Only providers are safe to probe read-only (a query cannot trigger an action). Services/receivers are never
         // invoked here — binding or broadcasting could cause side effects, so they are listed but not called.
-        val probe = if (kind == Kind.PROVIDER && clean) probeProvider(ctx, key) else null
-        return Comp(kind, pkg, name, key, perm, prot, exported, clean, probe)
+        val probe = if (kind == Kind.PROVIDER && clean) probeProvider(ctx, key) else Pair(null, emptyList())
+        return Comp(kind, pkg, name, key, perm, prot, exported, clean, probe.first, probe.second)
     }
 
     /** Read-only query of an exported provider authority. Captures columns/rows or the exact failure. No writes. */
-    private fun probeProvider(ctx: Context, authority: String): String {
-        if (authority.isBlank() || authority.contains('/')) return "no queryable authority"
+    private fun probeProvider(ctx: Context, authority: String): Pair<String, List<String>> {
+        if (authority.isBlank() || authority.contains('/')) return Pair("no queryable authority", emptyList())
         return try {
             ctx.contentResolver.query(Uri.parse("content://" + authority), null, null, null, null)?.use { c ->
-                val cols = c.columnNames.joinToString(",").take(160)
-                "rows=" + c.count + (if (cols.isNotBlank()) " cols=[" + cols + "]" else "")
-            } ?: "query returned null"
+                val names = c.columnNames.toList()
+                val cols = names.joinToString(",").take(160)
+                Pair("rows=" + c.count + (if (cols.isNotBlank()) " cols=[" + cols + "]" else ""), names)
+            } ?: Pair("query returned null", emptyList())
         } catch (e: SecurityException) {
-            "SecurityException: " + (e.message?.take(100) ?: "denied")
+            Pair("SecurityException: " + (e.message?.take(100) ?: "denied"), emptyList())
         } catch (t: Throwable) {
-            t.javaClass.simpleName + ": " + (t.message?.take(100) ?: "")
+            Pair(t.javaClass.simpleName + ": " + (t.message?.take(100) ?: ""), emptyList())
         }
     }
 

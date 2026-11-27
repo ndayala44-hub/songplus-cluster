@@ -34,7 +34,8 @@ class VehicleRepository(
     private val tripStore: TripStore,
     private val obd2: Obd2Source
 ) {
-    private val byd = BydAutoSource(context.applicationContext)
+    private val appCtx = context.applicationContext
+    private val byd = BydAutoSource(appCtx)
     private val engine = SimEngine()
 
     private val _state = MutableStateFlow(VehicleState.unavailable())
@@ -113,7 +114,23 @@ class VehicleRepository(
                         speedSuspect = true
                     }
                 }
-                val bydOk = bydChecked != null && byd.hasCoreData(bydChecked)
+                val bydApiOk = bydChecked != null && byd.hasCoreData(bydChecked)
+
+                // Legitimate ContentProvider route (read-only), if one has been configured from the component scan.
+                val providerMap = ProviderVehicleSource.ProviderMap(
+                    s.providerAuthority,
+                    s.providerSpeedCol.ifBlank { null }, s.providerBatteryCol.ifBlank { null },
+                    s.providerRangeCol.ifBlank { null }, s.providerGearCol.ifBlank { null }
+                )
+                val providerCand: VehicleState? =
+                    if (s.dataMode != DataMode.OBD2 && s.dataMode != DataMode.SIMULATION && providerMap.usable)
+                        ProviderVehicleSource.read(appCtx, providerMap) else null
+                val providerHasSpeed = providerCand?.speedKmh?.available == true
+
+                // BYD-family real = genuine BYD API if available, else the clean provider route.
+                val bydFamilyCand: VehicleState? = if (bydApiOk) bydChecked else providerCand
+                val bydOk = bydApiOk || providerHasSpeed
+                val realViaProvider = !bydApiOk && providerHasSpeed
 
                 // OBD2 candidate (explicit OBD2 mode, or Automatic fallback).
                 val obd2Cand: VehicleState? = if (wantObd2) obd2State(obd2.readings.value) else null
@@ -122,9 +139,9 @@ class VehicleRepository(
                 // Pick the source with the pure, unit-tested selector (Automatic: BYD -> OBD2 -> labelled simulation).
                 val decision = SourceSelector.choose(s.dataMode, bydOk, obd2Ok)
                 val real2: VehicleState? = when (decision.source) {
-                    SourceSelector.Chosen.BYD -> bydChecked
+                    SourceSelector.Chosen.BYD -> bydFamilyCand
                     SourceSelector.Chosen.OBD2 -> obd2Cand
-                    SourceSelector.Chosen.NONE -> bydChecked ?: obd2Cand
+                    SourceSelector.Chosen.NONE -> bydFamilyCand ?: obd2Cand
                     SourceSelector.Chosen.SIMULATION -> null
                 }
                 val realOk = decision.real
@@ -157,6 +174,7 @@ class VehicleRepository(
                     bydClassesPresent = byd.classesPresent,
                     message = describe(s.dataMode, effective, byd.classesPresent) +
                         (if (realViaObd2 && effective == EffectiveSource.REAL && s.dataMode == DataMode.AUTO) " · via OBD2" else "") +
+                        (if (realViaProvider && effective == EffectiveSource.REAL) " · via provider" else "") +
                         (if (speedSuspect) " · speed signal looks stuck at 0, hidden" else ""),
                     devices = byd.probes(),
                     lastUpdateMs = System.currentTimeMillis(),

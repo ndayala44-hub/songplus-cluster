@@ -341,4 +341,7 @@
     <string name="signing_cert">App signing cert</string>
     <string name="signing_sha">SHA-256:</string>
     <string name="signing_hint">A debug build shows CN=Android Debug. A platform-signed build shows the platform certificate — that is how you confirm the signed APK installed.</string>
+    <string name="scan_active_provider">Active data provider</string>
+    <string name="scan_use_provider">Use as data source</string>
+    <string name="scan_clear_provider">Clear data provider</string>
 </resources>

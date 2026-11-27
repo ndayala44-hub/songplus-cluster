@@ -80,7 +80,12 @@ data class AppSettings(
     val recordSimTrips: Boolean = false,
     val obd2Enabled: Boolean = false,
     val obd2Mac: String = "",
-    val obd2Name: String = ""
+    val obd2Name: String = "",
+    val providerAuthority: String = "",
+    val providerSpeedCol: String = "",
+    val providerBatteryCol: String = "",
+    val providerRangeCol: String = "",
+    val providerGearCol: String = ""
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("language", language.name); put("speedUnit", speedUnit.name); put("distUnit", distUnit.name)
@@ -101,6 +106,8 @@ data class AppSettings(
         put("tripsEnabled", tripsEnabled); put("tripAutoStopSec", tripAutoStopSec)
         put("tripMinKm", tripMinKm.toDouble()); put("recordSimTrips", recordSimTrips)
         put("obd2Enabled", obd2Enabled); put("obd2Mac", obd2Mac); put("obd2Name", obd2Name)
+        put("providerAuthority", providerAuthority); put("providerSpeedCol", providerSpeedCol)
+        put("providerBatteryCol", providerBatteryCol); put("providerRangeCol", providerRangeCol); put("providerGearCol", providerGearCol)
     }
 
     companion object {
@@ -151,7 +158,12 @@ data class AppSettings(
                 recordSimTrips = o.optBoolean("recordSimTrips", d.recordSimTrips),
                 obd2Enabled = o.optBoolean("obd2Enabled", d.obd2Enabled),
                 obd2Mac = o.optString("obd2Mac", d.obd2Mac),
-                obd2Name = o.optString("obd2Name", d.obd2Name)
+                obd2Name = o.optString("obd2Name", d.obd2Name),
+                providerAuthority = o.optString("providerAuthority", d.providerAuthority),
+                providerSpeedCol = o.optString("providerSpeedCol", d.providerSpeedCol),
+                providerBatteryCol = o.optString("providerBatteryCol", d.providerBatteryCol),
+                providerRangeCol = o.optString("providerRangeCol", d.providerRangeCol),
+                providerGearCol = o.optString("providerGearCol", d.providerGearCol)
             )
         }
     }
