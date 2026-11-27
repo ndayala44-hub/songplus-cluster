@@ -81,30 +81,48 @@ class VehicleRepository(
                 val dt = ((now - last) / 1_000_000_000f).coerceIn(0.001f, 0.5f)
                 last = now
 
-                // OBD2 adapter: connect/disconnect to match the selected mode, so the serial socket is only held when used.
-                if (s.dataMode == DataMode.OBD2) {
+                // OBD2 adapter: hold the serial socket only when it could be used — explicit OBD2 mode, or Automatic
+                // with an adapter configured (so Automatic can fall back to OBD2 before simulating).
+                val wantObd2 = s.dataMode == DataMode.OBD2 ||
+                    (s.dataMode == DataMode.AUTO && s.obd2Enabled && s.obd2Mac.isNotBlank())
+                if (wantObd2) {
                     if (obd2.state.value == Obd2Source.State.IDLE && s.obd2Mac.isNotBlank()) obd2.connect(s.obd2Mac)
                 } else if (obd2.state.value != Obd2Source.State.IDLE) {
                     obd2.stop()
                 }
 
-                val real: VehicleState? =
-                    if (s.dataMode == DataMode.OBD2) obd2State(obd2.readings.value)
-                    else if (s.dataMode != DataMode.SIMULATION && byd.classesPresent) byd.read() else null
+                // BYD API candidate (not in explicit OBD2 or Simulation mode).
+                val bydRaw: VehicleState? =
+                    if (s.dataMode != DataMode.OBD2 && s.dataMode != DataMode.SIMULATION && byd.classesPresent) byd.read() else null
                 // A speed that sticks at zero while the odometer advances is not believable: treat it as unavailable.
-                var checked = real
+                var bydChecked = bydRaw
                 var speedSuspect = false
-                if (real != null && real.speedKmh.available) {
-                    val odo = if (real.odoKm.available) real.odoKm.value else null
-                    if (!plausibility.check(real.speedKmh.value, odo, System.currentTimeMillis())) {
-                        checked = real.copy(speedKmh = na(0f))
+                if (bydRaw != null && bydRaw.speedKmh.available) {
+                    val odo = if (bydRaw.odoKm.available) bydRaw.odoKm.value else null
+                    if (!plausibility.check(bydRaw.speedKmh.value, odo, System.currentTimeMillis())) {
+                        bydChecked = bydRaw.copy(speedKmh = na(0f))
                         speedSuspect = true
                     }
                 }
-                val real2 = checked
-                val realOk = when (s.dataMode) {
-                    DataMode.OBD2 -> real2 != null && real2.speedKmh.available
-                    else -> real2 != null && byd.hasCoreData(real2)
+                val bydOk = bydChecked != null && byd.hasCoreData(bydChecked)
+
+                // OBD2 candidate (explicit OBD2 mode, or Automatic fallback).
+                val obd2Cand: VehicleState? = if (wantObd2) obd2State(obd2.readings.value) else null
+                val obd2Ok = obd2Cand != null && obd2Cand.speedKmh.available
+
+                // Pick the source. Automatic prefers genuine BYD data, then real OBD2, then clearly-labelled simulation.
+                val real2: VehicleState?
+                val realOk: Boolean
+                var realViaObd2 = false
+                when (s.dataMode) {
+                    DataMode.SIMULATION -> { real2 = null; realOk = false }
+                    DataMode.BYD_ONLY -> { real2 = bydChecked; realOk = bydOk }
+                    DataMode.OBD2 -> { real2 = obd2Cand; realOk = obd2Ok; realViaObd2 = true }
+                    DataMode.AUTO -> when {
+                        bydOk -> { real2 = bydChecked; realOk = true }
+                        obd2Ok -> { real2 = obd2Cand; realOk = true; realViaObd2 = true }
+                        else -> { real2 = bydChecked ?: obd2Cand; realOk = false }
+                    }
                 }
 
                 val useSim = when (s.dataMode) {
@@ -138,7 +156,9 @@ class VehicleRepository(
                 _status.value = ConnectionStatus(
                     effective = effective,
                     bydClassesPresent = byd.classesPresent,
-                    message = describe(s.dataMode, effective, byd.classesPresent) + if (speedSuspect) " · speed signal looks stuck at 0, hidden" else "",
+                    message = describe(s.dataMode, effective, byd.classesPresent) +
+                        (if (realViaObd2 && effective == EffectiveSource.REAL && s.dataMode == DataMode.AUTO) " · via OBD2" else "") +
+                        (if (speedSuspect) " · speed signal looks stuck at 0, hidden" else ""),
                     devices = byd.probes(),
                     lastUpdateMs = System.currentTimeMillis(),
                     updatesPerSecond = hz
