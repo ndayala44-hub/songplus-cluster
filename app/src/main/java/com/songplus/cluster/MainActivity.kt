@@ -106,14 +106,32 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Cluster-projection cooperation: when DashCast moves this app to the cluster display (or that display
+    // disconnects), Android fires display callbacks. The Compose canvas re-renders from flows and the activity
+    // handles config changes without recreation, so we only log here — but registering the listener guarantees we
+    // react to a late-appearing or disconnecting cluster display without stale state, and never crash on it.
+    private val displayListener = object : android.hardware.display.DisplayManager.DisplayListener {
+        override fun onDisplayAdded(displayId: Int) { android.util.Log.i("SongPlusCluster", "display added: $displayId") }
+        override fun onDisplayRemoved(displayId: Int) { android.util.Log.i("SongPlusCluster", "display removed: $displayId") }
+        override fun onDisplayChanged(displayId: Int) { /* size/density change handled by configChanges + fractional layout */ }
+    }
+
     override fun onStart() {
         super.onStart()
         vm.startVehicle()
         vm.refreshMedia()
+        try {
+            (getSystemService(DISPLAY_SERVICE) as? android.hardware.display.DisplayManager)
+                ?.registerDisplayListener(displayListener, null)
+        } catch (t: Throwable) { android.util.Log.w("SongPlusCluster", "display listener: ${t.message}") }
     }
 
     override fun onStop() {
         vm.stopVehicle()
+        try {
+            (getSystemService(DISPLAY_SERVICE) as? android.hardware.display.DisplayManager)
+                ?.unregisterDisplayListener(displayListener)
+        } catch (t: Throwable) { /* ignore */ }
         super.onStop()
     }
 

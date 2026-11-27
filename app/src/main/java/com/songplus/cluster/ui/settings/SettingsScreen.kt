@@ -311,6 +311,10 @@ private fun BydPermissionProbeSection(vm: ClusterViewModel) {
         report = vm.probeBydPermissions()
     }
     SectionTitle(stringResource(R.string.probe_title))
+    val signing = remember { vm.signingInfo() }
+    KeyValue(stringResource(R.string.signing_cert), signing.first.take(60))
+    Text(stringResource(R.string.signing_sha) + " " + signing.second.take(47), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text(stringResource(R.string.signing_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 8.dp))
     Text(stringResource(R.string.probe_intro), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     OutlinedButton(onClick = { report = vm.probeBydPermissions() }, modifier = Modifier.padding(top = 8.dp)) {
         Text(stringResource(R.string.probe_run))

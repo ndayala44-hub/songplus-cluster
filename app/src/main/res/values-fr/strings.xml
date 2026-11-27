@@ -337,4 +337,7 @@
     <string name="scan_counts">%1$d paquet(s) BYD, %2$d composant(s) analysés</string>
     <string name="scan_candidate">VOIE PROPRE POSSIBLE</string>
     <string name="scan_none_clean">Aucun composant exporté sans garde signature trouvé. Pas de voie IPC propre sur cette unité.</string>
+    <string name="signing_cert">Certificat de signature</string>
+    <string name="signing_sha">SHA-256 :</string>
+    <string name="signing_hint">Une version debug affiche CN=Android Debug. Une version signée plateforme affiche le certificat plateforme — c\'est ainsi qu\'on confirme l\'installation de l\'APK signé.</string>
 </resources>

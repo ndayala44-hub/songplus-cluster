@@ -338,4 +338,7 @@
     <string name="scan_counts">%1$d BYD package(s), %2$d component(s) scanned</string>
     <string name="scan_candidate">POSSIBLE CLEAN ROUTE</string>
     <string name="scan_none_clean">No exported component without a signature guard was found. No clean IPC route on this unit.</string>
+    <string name="signing_cert">App signing cert</string>
+    <string name="signing_sha">SHA-256:</string>
+    <string name="signing_hint">A debug build shows CN=Android Debug. A platform-signed build shows the platform certificate — that is how you confirm the signed APK installed.</string>
 </resources>

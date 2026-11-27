@@ -58,6 +58,9 @@ class ClusterViewModel(app: Application) : AndroidViewModel(app) {
     /** Read-only scan of BYD packages for an exported, non-signature data route. */
     fun scanBydComponents() = com.songplus.cluster.vehicle.BydComponentScan.run(getApplication())
 
+    /** The APK's signing certificate (subject DN + SHA-256), so a platform-signed install can be told from a debug one. */
+    fun signingInfo(): Pair<String, String> = com.songplus.cluster.vehicle.SigningInfo.of(getApplication())
+
     val trips: StateFlow<List<TripRecord>> = c.trips.trips
     val tripActive: StateFlow<Boolean> = c.vehicle.tripActive
 
