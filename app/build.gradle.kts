@@ -16,10 +16,31 @@ android {
         versionName = "1.1.0"
     }
 
+    // Optional platform-key signing. This is the LEGITIMATE route to the signature-level BYDAUTO_* permissions:
+    // the OS grants them only to an app signed with the same certificate the ROM trusts as "platform". Supply the
+    // keystore via -PPLATFORM_KEYSTORE=... (or the PLATFORM_KEYSTORE env var). When absent, builds use the normal
+    // debug key and the app runs exactly as before (OBD2 + simulation still work). See docs/PLATFORM_SIGNING.md.
+    val platformKsPath = (project.findProperty("PLATFORM_KEYSTORE") as String?) ?: System.getenv("PLATFORM_KEYSTORE")
+    val hasPlatformKs = platformKsPath != null && file(platformKsPath).exists()
+    signingConfigs {
+        if (hasPlatformKs) {
+            create("platform") {
+                storeFile = file(platformKsPath!!)
+                storePassword = (project.findProperty("PLATFORM_KS_PASSWORD") as String?) ?: System.getenv("PLATFORM_KS_PASSWORD") ?: "android"
+                keyAlias = (project.findProperty("PLATFORM_KEY_ALIAS") as String?) ?: System.getenv("PLATFORM_KEY_ALIAS") ?: "platform"
+                keyPassword = (project.findProperty("PLATFORM_KEY_PASSWORD") as String?) ?: System.getenv("PLATFORM_KEY_PASSWORD") ?: "android"
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            if (hasPlatformKs) signingConfig = signingConfigs.getByName("platform")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (hasPlatformKs) signingConfig = signingConfigs.getByName("platform")
         }
     }
     compileOptions {
