@@ -330,4 +330,6 @@
     <string name="obd2_status">Adapter status</string>
     <string name="obd2_live">Live (speed · rpm · coolant)</string>
     <string name="obd2_note">Speed uses the standard PID and should work on most cars. Battery percentage and range use proprietary BYD codes that are not verified for this model, so they stay "--" on OBD2. Values are never invented.</string>
+    <string name="diag_summary">Readable %1$d · signature-restricted %2$d · denied %3$d · of %4$d BYD data devices</string>
+    <string name="diag_summary_sig">SIGNATURE RESTRICTED means the data getter needs a signature-level permission a normal app cannot be granted. See docs/PLATFORM_SIGNING.md or use OBD2.</string>
 </resources>

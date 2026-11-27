@@ -241,11 +241,24 @@ private fun Vehicle(vm: ClusterViewModel) {
 
     SectionTitle(stringResource(R.string.diagnostics))
     if (st.devices.isEmpty()) Text(stringResource(R.string.not_probed), style = MaterialTheme.typography.bodySmall)
+    if (st.devices.isNotEmpty()) {
+        val ok = st.devices.count { it.status == ProbeStatus.OK }
+        val sig = st.devices.count { it.status == ProbeStatus.SIGNATURE_RESTRICTED }
+        val denied = st.devices.count { it.status == ProbeStatus.PERMISSION_DENIED }
+        Text(
+            stringResource(R.string.diag_summary, ok, sig, denied, st.devices.size),
+            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = 6.dp)
+        )
+        if (sig > 0) Text(stringResource(R.string.diag_summary_sig), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 6.dp))
+    }
     for (d in st.devices) {
         val c = when (d.status) {
             ProbeStatus.OK -> Color(0xFF90FC9C)
+            ProbeStatus.SIGNATURE_RESTRICTED -> Color(0xFF9B6BFF)
             ProbeStatus.PERMISSION_DENIED -> Color(0xFFFFB020)
             ProbeStatus.ERROR -> Color(0xFFFFB020)
+            ProbeStatus.NO_DATA -> Color(0xFF00C6FC)
             else -> Color.Gray
         }
         Column(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {

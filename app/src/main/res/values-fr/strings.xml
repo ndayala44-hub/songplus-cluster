@@ -329,4 +329,6 @@
     <string name="obd2_status">État de l\'adaptateur</string>
     <string name="obd2_live">Direct (vitesse · régime · liquide)</string>
     <string name="obd2_note">La vitesse utilise le PID standard et fonctionne sur la plupart des voitures. Le pourcentage de batterie et l\'autonomie utilisent des codes BYD propriétaires non vérifiés pour ce modèle : ils restent « -- » en OBD2. Aucune valeur n\'est inventée.</string>
+    <string name="diag_summary">Lisibles %1$d · restreints signature %2$d · refusés %3$d · sur %4$d appareils de données BYD</string>
+    <string name="diag_summary_sig">SIGNATURE RESTRICTED signifie que le lecteur de données exige une permission de niveau signature qu\'une app ordinaire ne peut obtenir. Voir docs/PLATFORM_SIGNING.md ou utiliser l\'OBD2.</string>
 </resources>

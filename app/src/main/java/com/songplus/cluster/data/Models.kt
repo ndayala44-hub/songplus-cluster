@@ -99,7 +99,7 @@ data class VehicleState(
 /** Which kind of data the app is actually showing right now. */
 enum class EffectiveSource { REAL, SIMULATION, NONE }
 
-enum class ProbeStatus { OK, PERMISSION_DENIED, UNSUPPORTED, ERROR, NOT_PROBED }
+enum class ProbeStatus { OK, PERMISSION_DENIED, SIGNATURE_RESTRICTED, UNSUPPORTED, NOT_INITIALIZED, NO_DATA, ERROR, NOT_PROBED }
 
 data class DeviceProbe(
     val device: String,

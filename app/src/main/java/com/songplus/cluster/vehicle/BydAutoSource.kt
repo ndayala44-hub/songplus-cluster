@@ -2,6 +2,8 @@ package com.songplus.cluster.vehicle
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.content.pm.PermissionInfo
+import android.os.Build
 import com.songplus.cluster.data.DeviceProbe
 import com.songplus.cluster.data.DriveMode
 import com.songplus.cluster.data.Gear
@@ -239,6 +241,18 @@ class BydAutoSource(private val ctx: Context) {
     fun hasCoreData(state: VehicleState): Boolean = state.speedKmh.available
 
     /** Per-device status for the diagnostics screen. */
+    /** Protection level of a permission on this device, or null when it is not defined here. */
+    private fun protectionOf(perm: String?): Int? {
+        if (perm == null) return null
+        return try {
+            val pi = ctx.packageManager.getPermissionInfo(perm, 0)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) pi.protection
+            else @Suppress("DEPRECATION") (pi.protectionLevel and PermissionInfo.PROTECTION_MASK_BASE)
+        } catch (t: Throwable) { null }
+    }
+
+    private fun isSignature(perm: String?): Boolean = protectionOf(perm) == PermissionInfo.PROTECTION_SIGNATURE
+
     fun probes(): List<DeviceProbe> = devs.map { d ->
         val st = lastCycle[d.name]
         val granted = d.permission?.let { ctx.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
@@ -247,6 +261,7 @@ class BydAutoSource(private val ctx: Context) {
             status = when {
                 !classesPresent -> ProbeStatus.UNSUPPORTED
                 st == null -> ProbeStatus.NOT_PROBED
+                st.first == ProbeStatus.PERMISSION_DENIED && isSignature(d.permission) -> ProbeStatus.SIGNATURE_RESTRICTED
                 else -> st.first
             },
             detail = when {
