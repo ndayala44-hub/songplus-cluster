@@ -60,6 +60,7 @@ class VehicleRepository(
 
     private var job: Job? = null
     private var simTime = 0f
+    private var lastObd2AttemptMs = 0L
 
     fun updateSim(change: (SimInputs) -> SimInputs) {
         _simInputs.value = change(_simInputs.value)
@@ -86,9 +87,17 @@ class VehicleRepository(
                 val wantObd2 = s.dataMode == DataMode.OBD2 ||
                     (s.dataMode == DataMode.AUTO && s.obd2Enabled && s.obd2Mac.isNotBlank())
                 if (wantObd2) {
-                    if (obd2.state.value == Obd2Source.State.IDLE && s.obd2Mac.isNotBlank()) obd2.connect(s.obd2Mac)
+                    if (obd2.state.value == Obd2Source.State.IDLE && s.obd2Mac.isNotBlank()) {
+                        lastObd2AttemptMs = System.currentTimeMillis(); obd2.connect(s.obd2Mac)
+                    }
                 } else if (obd2.state.value != Obd2Source.State.IDLE) {
                     obd2.stop()
+                }
+
+                // Recover a dropped OBD2 link: retry after a backoff rather than hammering the adapter.
+                if (wantObd2 && SourceSelector.shouldReconnect(obd2.state.value == Obd2Source.State.ERROR, lastObd2AttemptMs, System.currentTimeMillis())) {
+                    lastObd2AttemptMs = System.currentTimeMillis()
+                    if (s.obd2Mac.isNotBlank()) obd2.connect(s.obd2Mac)
                 }
 
                 // BYD API candidate (not in explicit OBD2 or Simulation mode).
@@ -110,27 +119,17 @@ class VehicleRepository(
                 val obd2Cand: VehicleState? = if (wantObd2) obd2State(obd2.readings.value) else null
                 val obd2Ok = obd2Cand != null && obd2Cand.speedKmh.available
 
-                // Pick the source. Automatic prefers genuine BYD data, then real OBD2, then clearly-labelled simulation.
-                val real2: VehicleState?
-                val realOk: Boolean
-                var realViaObd2 = false
-                when (s.dataMode) {
-                    DataMode.SIMULATION -> { real2 = null; realOk = false }
-                    DataMode.BYD_ONLY -> { real2 = bydChecked; realOk = bydOk }
-                    DataMode.OBD2 -> { real2 = obd2Cand; realOk = obd2Ok; realViaObd2 = true }
-                    DataMode.AUTO -> when {
-                        bydOk -> { real2 = bydChecked; realOk = true }
-                        obd2Ok -> { real2 = obd2Cand; realOk = true; realViaObd2 = true }
-                        else -> { real2 = bydChecked ?: obd2Cand; realOk = false }
-                    }
+                // Pick the source with the pure, unit-tested selector (Automatic: BYD -> OBD2 -> labelled simulation).
+                val decision = SourceSelector.choose(s.dataMode, bydOk, obd2Ok)
+                val real2: VehicleState? = when (decision.source) {
+                    SourceSelector.Chosen.BYD -> bydChecked
+                    SourceSelector.Chosen.OBD2 -> obd2Cand
+                    SourceSelector.Chosen.NONE -> bydChecked ?: obd2Cand
+                    SourceSelector.Chosen.SIMULATION -> null
                 }
-
-                val useSim = when (s.dataMode) {
-                    DataMode.SIMULATION -> true
-                    DataMode.BYD_ONLY -> false
-                    DataMode.OBD2 -> false
-                    DataMode.AUTO -> !realOk
-                }
+                val realOk = decision.real
+                val realViaObd2 = decision.viaObd2
+                val useSim = decision.useSim
                 val out: VehicleState
                 val effective: EffectiveSource
                 if (useSim) {
@@ -177,7 +176,7 @@ class VehicleRepository(
     /** Build a vehicle state from OBD2 readings: speed is real when the adapter answers, everything else unavailable. */
     private fun obd2State(r: Obd2Source.Readings): VehicleState {
         val base = VehicleState.unavailable()
-        val fresh = r.speedKmh != null && System.currentTimeMillis() - r.lastOkMs < 3000L
+        val fresh = SourceSelector.fresh(r.speedKmh != null, r.lastOkMs, System.currentTimeMillis())
         return if (fresh) base.copy(speedKmh = real(r.speedKmh!!.toFloat())) else base
     }
 

@@ -356,7 +356,8 @@ private fun BydComponentScanSection(vm: ClusterViewModel) {
         for (c in shown) {
             Column(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
                 KeyValue("${c.kind.name.lowercase()} · ${c.key}", stringResource(R.string.scan_candidate), Color(0xFF90FC9C))
-                Text("${c.pkg}\nguard: ${c.permission ?: "none"} (${c.protection})", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("${c.pkg}\nguard: ${c.permission ?: "none"} (${c.protection})" + (c.probeResult?.let { "\nread probe: $it" } ?: ""),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         if (r.candidates == 0 && r.comps.isNotEmpty()) {

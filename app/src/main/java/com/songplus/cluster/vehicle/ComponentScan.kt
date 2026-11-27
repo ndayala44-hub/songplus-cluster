@@ -1,6 +1,7 @@
 package com.songplus.cluster.vehicle
 
 import android.content.Context
+import android.net.Uri
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.PermissionInfo
@@ -28,7 +29,9 @@ object BydComponentScan {
         val protection: String,
         val exported: Boolean,
         /** True when exported and the guard permission is absent or NOT signature-level — a candidate clean route. */
-        val cleanCandidate: Boolean
+        val cleanCandidate: Boolean,
+        /** Read-only probe result for a candidate provider (rows/columns or the exact error); null if not probed. */
+        val probeResult: String? = null
     )
 
     data class Report(val comps: List<Comp>, val candidates: Int, val packages: Int, val note: String)
@@ -40,13 +43,13 @@ object BydComponentScan {
         for (pi in pkgs) {
             pi.providers?.forEach { p ->
                 val perm = p.readPermission ?: p.writePermission
-                out += mk(Kind.PROVIDER, p.packageName, p.name ?: "", p.authority ?: (p.name ?: ""), perm, p.exported, pm)
+                out += mk(ctx, Kind.PROVIDER, p.packageName, p.name ?: "", p.authority ?: (p.name ?: ""), perm, p.exported, pm)
             }
-            pi.services?.forEach { s ->
-                out += mk(Kind.SERVICE, s.packageName, s.name ?: "", (s.name ?: "").substringAfterLast('.'), s.permission, s.exported, pm)
+            pi.services?.forEach { sv ->
+                out += mk(ctx, Kind.SERVICE, sv.packageName, sv.name ?: "", (sv.name ?: "").substringAfterLast('.'), sv.permission, sv.exported, pm)
             }
             pi.receivers?.forEach { r ->
-                out += mk(Kind.RECEIVER, r.packageName, r.name ?: "", (r.name ?: "").substringAfterLast('.'), r.permission, r.exported, pm)
+                out += mk(ctx, Kind.RECEIVER, r.packageName, r.name ?: "", (r.name ?: "").substringAfterLast('.'), r.permission, r.exported, pm)
             }
         }
         // Surface the most interesting first: clean candidates, then exported, then the rest.
@@ -60,10 +63,28 @@ object BydComponentScan {
         return Report(sorted, candidates, pkgs.size, note)
     }
 
-    private fun mk(kind: Kind, pkg: String, name: String, key: String, perm: String?, exported: Boolean, pm: PackageManager): Comp {
+    private fun mk(ctx: Context, kind: Kind, pkg: String, name: String, key: String, perm: String?, exported: Boolean, pm: PackageManager): Comp {
         val prot = protectionString(perm, pm)
         val clean = exported && (perm == null || !prot.startsWith("signature"))
-        return Comp(kind, pkg, name, key, perm, prot, exported, clean)
+        // Only providers are safe to probe read-only (a query cannot trigger an action). Services/receivers are never
+        // invoked here — binding or broadcasting could cause side effects, so they are listed but not called.
+        val probe = if (kind == Kind.PROVIDER && clean) probeProvider(ctx, key) else null
+        return Comp(kind, pkg, name, key, perm, prot, exported, clean, probe)
+    }
+
+    /** Read-only query of an exported provider authority. Captures columns/rows or the exact failure. No writes. */
+    private fun probeProvider(ctx: Context, authority: String): String {
+        if (authority.isBlank() || authority.contains('/')) return "no queryable authority"
+        return try {
+            ctx.contentResolver.query(Uri.parse("content://" + authority), null, null, null, null)?.use { c ->
+                val cols = c.columnNames.joinToString(",").take(160)
+                "rows=" + c.count + (if (cols.isNotBlank()) " cols=[" + cols + "]" else "")
+            } ?: "query returned null"
+        } catch (e: SecurityException) {
+            "SecurityException: " + (e.message?.take(100) ?: "denied")
+        } catch (t: Throwable) {
+            t.javaClass.simpleName + ": " + (t.message?.take(100) ?: "")
+        }
     }
 
     private fun installedBydPackages(pm: PackageManager): List<PackageInfo> {
