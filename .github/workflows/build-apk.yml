@@ -12,6 +12,11 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      PLATFORM_KEYSTORE_B64: ${{ secrets.PLATFORM_KEYSTORE_B64 }}
+      PLATFORM_KS_PASSWORD: ${{ secrets.PLATFORM_KS_PASSWORD }}
+      PLATFORM_KEY_ALIAS: ${{ secrets.PLATFORM_KEY_ALIAS }}
+      PLATFORM_KEY_PASSWORD: ${{ secrets.PLATFORM_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -40,15 +45,12 @@ jobs:
       # Add repo secret PLATFORM_KEYSTORE_B64 (base64 of platform.keystore) to enable it; absent = normal debug key.
       # See docs/PLATFORM_SIGNING.md.
       - name: Restore platform keystore
-        if: ${{ secrets.PLATFORM_KEYSTORE_B64 != '' }}
-        run: echo "${{ secrets.PLATFORM_KEYSTORE_B64 }}" | base64 -d > "$RUNNER_TEMP/platform.keystore"
+        if: ${{ env.PLATFORM_KEYSTORE_B64 != '' }}
+        run: echo "$PLATFORM_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/platform.keystore"
 
       - name: Build debug APK
         env:
-          PLATFORM_KEYSTORE: ${{ secrets.PLATFORM_KEYSTORE_B64 != '' && format('{0}/platform.keystore', runner.temp) || '' }}
-          PLATFORM_KS_PASSWORD: ${{ secrets.PLATFORM_KS_PASSWORD }}
-          PLATFORM_KEY_ALIAS: ${{ secrets.PLATFORM_KEY_ALIAS }}
-          PLATFORM_KEY_PASSWORD: ${{ secrets.PLATFORM_KEY_PASSWORD }}
+          PLATFORM_KEYSTORE: ${{ env.PLATFORM_KEYSTORE_B64 != '' && format('{0}/platform.keystore', runner.temp) || '' }}
         run: |
           set +e
           gradle --no-daemon --console=plain assembleDebug 2>&1 | tee build.log
