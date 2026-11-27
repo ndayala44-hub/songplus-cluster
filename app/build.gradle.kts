@@ -20,7 +20,7 @@ android {
     // the OS grants them only to an app signed with the same certificate the ROM trusts as "platform". Supply the
     // keystore via -PPLATFORM_KEYSTORE=... (or the PLATFORM_KEYSTORE env var). When absent, builds use the normal
     // debug key and the app runs exactly as before (OBD2 + simulation still work). See docs/PLATFORM_SIGNING.md.
-    val platformKsPath = (project.findProperty("PLATFORM_KEYSTORE") as String?) ?: System.getenv("PLATFORM_KEYSTORE")
+    val platformKsPath = ((project.findProperty("PLATFORM_KEYSTORE") as String?) ?: System.getenv("PLATFORM_KEYSTORE"))?.takeIf { it.isNotBlank() }
     val hasPlatformKs = platformKsPath != null && file(platformKsPath).exists()
     signingConfigs {
         if (hasPlatformKs) {
