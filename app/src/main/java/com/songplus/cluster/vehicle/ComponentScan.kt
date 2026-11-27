@@ -39,7 +39,7 @@ object BydComponentScan {
         val out = ArrayList<Comp>()
         for (pi in pkgs) {
             pi.providers?.forEach { p ->
-                val perm = p.readPermission ?: p.permission
+                val perm = p.readPermission ?: p.writePermission
                 out += mk(Kind.PROVIDER, p.packageName, p.name ?: "", p.authority ?: (p.name ?: ""), perm, p.exported, pm)
             }
             pi.services?.forEach { s ->
